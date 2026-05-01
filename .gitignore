@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+testenv/
+env/
+
+# Ferramentas
+.agents/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Dados e Cache (baixados automaticamente pelo pipeline)
+data/
+
+# Scripts temporários e logs
+scratch*.py
+out.log
+*.log
+logs/
+
+# Pastas de Notebooks e Ferramentas
+notebooks/
+.ipynb_checkpoints/
+
+# SO
+.DS_Store
+
+# Segurança
+.env
