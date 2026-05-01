@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from db.duck_manager import duck_db
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def duck_conn():
     """Conexão DuckDB em memória para testes."""
     conn = duckdb.connect(database=":memory:")
