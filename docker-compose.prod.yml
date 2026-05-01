@@ -27,7 +27,7 @@ services:
         limits:
           memory: 2G
 
-  # Metabase (Opcional, se quiser dashboard na nuvem)
+  # Metabase para Dashboards (OCI Always Free ARM)
   metabase:
     image: metabase/metabase:v0.50.21
     container_name: cultivares_metabase_prod
@@ -40,6 +40,12 @@ services:
       - MB_DB_FILE_PATH=/metabase-data/metabase.db
     volumes:
       - metabase_data:/metabase-data
+      - ./plugins:/plugins                # Pasta com o driver .jar do DuckDB
+      - ./data:/app/data                  # Acesso ao banco DuckDB e Parquets
+    deploy:
+      resources:
+        limits:
+          memory: 4G                      # Aproveitando os 24GB do ARM da Oracle
 
 volumes:
   metabase_data:
