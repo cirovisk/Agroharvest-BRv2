@@ -7,11 +7,7 @@ import requests
 
 from pipeline.registry import register
 from pipeline.base import BaseSource
-from pipeline.utils import normalize_string, get_cultura_id, upsert_data
-from db.manager import (
-    engine, FatoProducaoConab, FatoPrecoConabMensal, FatoPrecoConabSemanal
-)
-from sqlalchemy import text
+from pipeline.utils import normalize_string, get_cultura_id
 
 log = logging.getLogger(__name__)
 
@@ -202,22 +198,13 @@ class ConabPipeline(BaseSource):
                 df_f["id_municipio"] = None
 
             if "producao" in key:
-                index = ['id_cultura', 'uf', 'ano_agricola', 'safra']
-                upsert_data(FatoProducaoConab, df_f, index_elements=index)
+                self.save_parquet(df_f, "fato_producao_conab")
             elif "mensal" in key:
-                index = ['id_cultura', 'id_municipio', 'uf', 'ano', 'mes', 'nivel_comercializacao']
-                upsert_data(FatoPrecoConabMensal, df_f, index_elements=index)
+                self.save_parquet(df_f, "fato_precos_conab_mensal")
             elif "semanal" in key:
-                # Política semanal de 4 semanas
-                with engine.connect() as conn:
-                    count = conn.execute(text("SELECT COUNT(DISTINCT semana) FROM fato_precos_conab_semanal")).scalar() or 0
-                if count >= 4:
-                    with engine.begin() as conn:
-                        conn.execute(text("TRUNCATE TABLE fato_precos_conab_semanal"))
-                index = ['id_cultura', 'id_municipio', 'uf', 'ano', 'mes', 'semana', 'nivel_comercializacao']
-                upsert_data(FatoPrecoConabSemanal, df_f, index_elements=index)
+                self.save_parquet(df_f, "fato_precos_conab_semanal")
 
             total += len(df_f)
-            self.log.info(f"Fato CONAB ({key}): Upsert concluído.")
+            self.log.info(f"Fato CONAB ({key}): Lakehouse save concluído.")
 
         return f"{total} registros upserted (total)"

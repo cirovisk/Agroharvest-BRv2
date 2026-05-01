@@ -9,9 +9,8 @@ from pathlib import Path
 
 from pipeline.registry import register
 from pipeline.base import BaseSource
-from pipeline.utils import normalize_string, get_cultura_id, upsert_data
+from pipeline.utils import normalize_string, get_cultura_id
 from pipeline.dimensions import preencher_dimensao_mantenedor
-from db.manager import FatoCultivar
 
 log = logging.getLogger(__name__)
 
@@ -221,7 +220,7 @@ class CultivaresPipeline(BaseSource):
         df_f["id_mantenedor"] = df_f["mantenedor"].map(lookups.get("mantenedores", {}))
         cols = ["nr_registro", "id_cultura", "id_mantenedor", "cultivar", "nome_secundario", "situacao", "nr_formulario", "data_reg", "data_val"]
         df_f = df_f[[c for c in cols if c in df_f.columns]].drop_duplicates(subset=["nr_registro"]).dropna(subset=["cultivar", "id_cultura"])
-        upsert_data(FatoCultivar, df_f, index_elements=['nr_registro'])
-        result = f"{len(df_f)} registros upserted"
-        self.log.info(f"Fato Cultivares: {result}.")
+        path = self.save_parquet(df_f, "fato_registro_cultivares")
+        result = f"{len(df_f)} registros salvos em {path}"
+        self.log.info(f"Fato Cultivares Lakehouse: {result}.")
         return result

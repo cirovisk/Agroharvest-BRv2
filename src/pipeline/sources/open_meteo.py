@@ -12,8 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from pipeline.registry import register
 from pipeline.base import BaseSource
-from pipeline.utils import upsert_data
-from db.manager import DimMunicipio, FatoMeteorologia
+from db.manager import DimMunicipio
 
 log = logging.getLogger(__name__)
 
@@ -170,7 +169,10 @@ class OpenMeteoPipeline(BaseSource):
         if df.empty:
             return "0 registros"
 
-        upsert_data(FatoMeteorologia, df, index_elements=['id_municipio', 'data'])
-        result = f"{len(df)} registros upserted"
-        self.log.info(f"Fato Meteorologia (Open-Meteo): {result}.")
+        # Agora salvamos em Parquet (Lakehouse Style)
+        table_name = "fato_meteorologia"
+        path = self.save_parquet(df, table_name)
+        
+        result = f"{len(df)} registros salvos em {path}"
+        self.log.info(f"Open-Meteo Lakehouse: {result}.")
         return result

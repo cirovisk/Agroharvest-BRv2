@@ -8,8 +8,7 @@ import requests
 
 from pipeline.registry import register
 from pipeline.base import BaseSource
-from pipeline.utils import normalize_string, get_cultura_id, map_municipio_by_name, upsert_data
-from db.manager import FatoSigefProducao, FatoSigefReservaSemente
+from pipeline.utils import normalize_string, get_cultura_id, map_municipio_by_name
 
 log = logging.getLogger(__name__)
 
@@ -160,13 +159,11 @@ class SigefPipeline(BaseSource):
             df_f = df_f.dropna(subset=["id_cultura", "id_municipio"])
 
             if key == "campos_producao":
-                index = ['id_cultura', 'id_municipio', 'safra', 'especie', 'cultivar_raw', 'categoria']
-                upsert_data(FatoSigefProducao, df_f, index_elements=index)
+                self.save_parquet(df_f, "fato_sigef_producao")
             elif key == "reserva_semente":
-                index = ['id_cultura', 'id_municipio', 'periodo', 'especie', 'cultivar_raw']
-                upsert_data(FatoSigefReservaSemente, df_f, index_elements=index)
+                self.save_parquet(df_f, "fato_sigef_reserva_semente")
 
             total += len(df_f)
-            self.log.info(f"Fato SIGEF ({key}): Upsert concluído.")
+            self.log.info(f"Fato SIGEF ({key}): Lakehouse save concluído.")
 
         return f"{total} registros upserted (total)"

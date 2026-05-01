@@ -7,8 +7,7 @@ import requests
 
 from pipeline.registry import register
 from pipeline.base import BaseSource
-from pipeline.utils import map_municipio_by_name, upsert_data
-from db.manager import FatoFertilizante
+from pipeline.utils import map_municipio_by_name
 
 log = logging.getLogger(__name__)
 
@@ -148,7 +147,7 @@ class FertilizantesPipeline(BaseSource):
         df_f = df.copy()
         df_f["id_municipio"] = map_municipio_by_name(df_f, lookups["municipios_nome"])
         df_f = df_f.drop_duplicates(subset=["nr_registro_estabelecimento"])
-        upsert_data(FatoFertilizante, df_f, index_elements=['nr_registro_estabelecimento'])
-        result = f"{len(df_f)} estabelecimentos upserted"
-        self.log.info(f"Fato Fertilizantes: {result}.")
+        path = self.save_parquet(df_f, "fato_fertilizantes_estabelecimentos")
+        result = f"{len(df_f)} estabelecimentos salvos em {path}"
+        self.log.info(f"Fato Fertilizantes Lakehouse: {result}.")
         return result

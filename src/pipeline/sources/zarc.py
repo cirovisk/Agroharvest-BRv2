@@ -19,8 +19,7 @@ from pathlib import Path
 
 from pipeline.registry import register
 from pipeline.base import BaseSource
-from pipeline.utils import normalize_string, get_cultura_id, upsert_data
-from db.manager import FatoRiscoZARC
+from pipeline.utils import normalize_string, get_cultura_id
 
 log = logging.getLogger(__name__)
 
@@ -252,7 +251,9 @@ class ZarcPipeline(BaseSource):
         # Remove riscos nulos
         df_f = df_f[df_f["risco_climatico"].notna()]
 
-        upsert_data(FatoRiscoZARC, df_f, index_elements=['id_cultura', 'id_municipio', 'tipo_solo', 'periodo_plantio'])
-        result = f"{len(df_f)} registros processados neste chunk"
-        self.log.info(f"Fato ZARC: {result}.")
+        import uuid
+        chunk_id = str(uuid.uuid4())[:8]
+        path = self.save_parquet(df_f, "fato_risco_zarc", file_suffix=chunk_id)
+        result = f"{len(df_f)} registros salvos em {path}"
+        self.log.info(f"Fato ZARC Lakehouse: {result}.")
         return result

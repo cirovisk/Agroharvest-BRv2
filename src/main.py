@@ -9,7 +9,7 @@ import argparse
 import logging
 import gc
 
-from db.manager import init_db, get_db
+from db.duck_manager import duck_db
 from pipeline.registry import get_sources
 from pipeline.dimensions import (
     preencher_dimensao_cultura,
@@ -36,18 +36,17 @@ def main():
     parser.add_argument("--refresh", action="store_true", help="Força refresh de caches")
     args = parser.parse_args()
 
-    log.info("--- Iniciando Pipeline AgroHarvest BR (Registry) ---")
-    init_db()
-    db = next(get_db())
+    log.info("--- Iniciando Pipeline AgroHarvest BR (DuckDB + Parquet) ---")
+    conn = duck_db.conn
 
     # Lookups compartilhados (construídos uma vez, usados por todos)
     lookups = {
-        "db": db,
-        "culturas": preencher_dimensao_cultura(db, CULTURAS_ALVO),
+        "db": conn,
+        "culturas": preencher_dimensao_cultura(conn, CULTURAS_ALVO),
         "municipios_ibge": {},
         "municipios_nome": {},
     }
-    map_ibge, map_nome = carregar_municipios_completo_ibge(db)
+    map_ibge, map_nome = carregar_municipios_completo_ibge(conn)
     lookups["municipios_ibge"] = map_ibge
     lookups["municipios_nome"] = map_nome
 

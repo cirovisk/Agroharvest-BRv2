@@ -6,6 +6,7 @@ import os
 import time
 import logging
 from abc import ABC, abstractmethod
+from pipeline.parquet_utils import save_as_parquet
 
 
 class BaseSource(ABC):
@@ -13,6 +14,10 @@ class BaseSource(ABC):
 
     def __init__(self):
         self.log = logging.getLogger(self.__class__.__name__)
+
+    def save_parquet(self, df, table_name, **kwargs):
+        """Helper para salvar DataFrames em Parquet com Brotli."""
+        return save_as_parquet(df, table_name, **kwargs)
 
     @abstractmethod
     def extract(self, **kwargs):

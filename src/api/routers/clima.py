@@ -1,32 +1,33 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter
 from datetime import date
-from typing import List, Optional
+from typing import Optional
 
-from db.manager import FatoMeteorologia, DimMunicipio
-from api.dependencies import get_session
 from api.schemas import MetereologiaSchema, PaginatedResponse
 from api.utils import paginate_query
 
 router = APIRouter(prefix="/clima", tags=["Clima"])
 
 @router.get("/", response_model=PaginatedResponse[MetereologiaSchema])
-def get_clima(codigo_ibge: Optional[str] = None, data_inicio: Optional[date] = None, data_fim: Optional[date] = None, page: int = 1, page_size: int = 20, db: Session = Depends(get_session)):
-    query = db.query(
-        FatoMeteorologia.id_meteo,
-        FatoMeteorologia.data,
-        FatoMeteorologia.precipitacao_total_mm,
-        FatoMeteorologia.temp_media_c,
-        FatoMeteorologia.umidade_media,
-        DimMunicipio.nome.label("municipio_nome"),
-        DimMunicipio.uf
-    ).join(DimMunicipio, FatoMeteorologia.id_municipio == DimMunicipio.id_municipio)
-
+def get_clima(codigo_ibge: Optional[str] = None, data_inicio: Optional[date] = None, data_fim: Optional[date] = None, page: int = 1, page_size: int = 20):
+    sql = """
+        SELECT 
+            f.id_meteo,
+            f.data,
+            f.precipitacao_total_mm,
+            f.temp_media_c,
+            f.umidade_media,
+            m.nome as municipio_nome,
+            m.uf
+        FROM fato_meteorologia f
+        JOIN dim_municipio m ON f.id_municipio = m.id_municipio
+        WHERE 1=1
+    """
+    
     if codigo_ibge:
-        query = query.filter(DimMunicipio.codigo_ibge == codigo_ibge)
+        sql += f" AND m.codigo_ibge = '{codigo_ibge}'"
     if data_inicio:
-        query = query.filter(FatoMeteorologia.data >= data_inicio)
+        sql += f" AND f.data >= '{data_inicio.strftime('%Y-%m-%d')}'"
     if data_fim:
-        query = query.filter(FatoMeteorologia.data <= data_fim)
-
-    return paginate_query(query, page, page_size)
+        sql += f" AND f.data <= '{data_fim.strftime('%Y-%m-%d')}'"
+        
+    return paginate_query(sql, page, page_size)

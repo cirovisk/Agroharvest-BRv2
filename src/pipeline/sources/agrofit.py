@@ -7,8 +7,7 @@ from pathlib import Path
 
 from pipeline.registry import register
 from pipeline.base import BaseSource
-from pipeline.utils import normalize_string, get_cultura_id, upsert_data
-from db.manager import FatoAgrofit
+from pipeline.utils import normalize_string, get_cultura_id
 
 log = logging.getLogger(__name__)
 
@@ -111,7 +110,7 @@ class AgrofitPipeline(BaseSource):
         df_f["id_cultura"] = df_f["cultura"].apply(lambda x: get_cultura_id(x, lookups["culturas"]))
         df_f = df_f.dropna(subset=["id_cultura"])
         index = ['id_cultura', 'nr_registro', 'marca_comercial', 'praga_comum']
-        upsert_data(FatoAgrofit, df_f, index_elements=index)
-        result = f"{len(df_f)} registros upserted"
-        self.log.info(f"Fato Agrofit: {result}.")
+        path = self.save_parquet(df_f, "fato_agrofit")
+        result = f"{len(df_f)} registros salvos em {path}"
+        self.log.info(f"Fato Agrofit Lakehouse: {result}.")
         return result

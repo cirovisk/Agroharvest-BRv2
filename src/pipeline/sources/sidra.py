@@ -9,8 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from pipeline.registry import register
 from pipeline.base import BaseSource
-from pipeline.utils import normalize_string, get_cultura_id, upsert_data
-from db.manager import FatoProducaoPAM
+from pipeline.utils import normalize_string, get_cultura_id
 
 log = logging.getLogger(__name__)
 
@@ -202,7 +201,7 @@ class SidraPipeline(BaseSource):
         df_f["id_municipio"] = df_f["cod_municipio_ibge"].map(lookups["municipios_ibge"])
         cols = ["id_cultura", "id_municipio", "ano", "area_plantada_ha", "area_colhida_ha", "qtde_produzida_ton", "valor_producao_mil_reais"]
         df_f = df_f[cols].dropna(subset=["id_cultura", "id_municipio"])
-        upsert_data(FatoProducaoPAM, df_f, index_elements=['id_cultura', 'id_municipio', 'ano'])
-        result = f"{len(df_f)} registros upserted"
-        self.log.info(f"Fato PAM: {result}.")
+        path = self.save_parquet(df_f, "fato_producao_pam")
+        result = f"{len(df_f)} registros salvos em {path}"
+        self.log.info(f"Fato PAM Lakehouse: {result}.")
         return result

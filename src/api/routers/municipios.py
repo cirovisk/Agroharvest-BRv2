@@ -1,32 +1,25 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from typing import List, Optional
+from fastapi import APIRouter, HTTPException
+from typing import Optional
 
-from db.manager import DimMunicipio
-from api.dependencies import get_session
+from db.duck_manager import duck_db
 from api.schemas import MunicipioBaseSchema, PaginatedResponse
 from api.utils import paginate_query
 
 router = APIRouter(prefix="/municipios", tags=["Municípios"])
 
 @router.get("/", response_model=PaginatedResponse[MunicipioBaseSchema])
-def list_municipios(
-    uf: Optional[str] = None, 
-    nome: Optional[str] = None,
-    page: int = 1, 
-    page_size: int = 50, 
-    db: Session = Depends(get_session)
-):
-    query = db.query(DimMunicipio)
+def list_municipios(uf: Optional[str] = None, page: int = 1, page_size: int = 20):
+    sql = "SELECT id_municipio, codigo_ibge, nome, uf FROM dim_municipio WHERE 1=1"
     if uf:
-        query = query.filter(DimMunicipio.uf == uf.upper())
-    if nome:
-        query = query.filter(DimMunicipio.nome.ilike(f"%{nome}%"))
-    return paginate_query(query, page, page_size)
+        sql += f" AND uf = '{uf.upper().strip()}'"
+        
+    return paginate_query(sql, page, page_size)
 
 @router.get("/{codigo_ibge}", response_model=MunicipioBaseSchema)
-def get_municipio(codigo_ibge: str, db: Session = Depends(get_session)):
-    mun = db.query(DimMunicipio).filter(DimMunicipio.codigo_ibge == codigo_ibge).first()
-    if not mun:
+def get_municipio(codigo_ibge: str):
+    sql = f"SELECT id_municipio, codigo_ibge, nome, uf FROM dim_municipio WHERE codigo_ibge = '{codigo_ibge.strip()}'"
+    df = duck_db.execute_query(sql)
+    
+    if df.empty:
         raise HTTPException(status_code=404, detail="Município não encontrado")
-    return mun
+    return df.to_dict(orient="records")[0]
