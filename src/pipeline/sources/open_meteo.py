@@ -12,7 +12,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from pipeline.registry import register
 from pipeline.base import BaseSource
-from db.manager import DimMunicipio
 
 log = logging.getLogger(__name__)
 
@@ -41,15 +40,15 @@ class OpenMeteoPipeline(BaseSource):
         if coords_df.empty:
             return "0 registros (sem coordenadas)"
         
-        # 2. Obter municípios do banco
-        all_muns = db.query(DimMunicipio).all()
+        # 2. Obter municípios do banco via DuckDB
+        muns_df = db.execute("SELECT id_municipio, codigo_ibge FROM dim_municipio").df()
         
         mun_coords = {}
-        for m in all_muns:
+        for _, m in muns_df.iterrows():
             # Codigo IBGE no CSV geralmente é os 7 digitos
-            match = coords_df[coords_df["codigo_ibge"].astype(str) == str(m.codigo_ibge)]
+            match = coords_df[coords_df["codigo_ibge"].astype(str) == str(m["codigo_ibge"])]
             if not match.empty:
-                mun_coords[m.id_municipio] = {
+                mun_coords[m["id_municipio"]] = {
                     "lat": match.iloc[0]["latitude"],
                     "lon": match.iloc[0]["longitude"]
                 }

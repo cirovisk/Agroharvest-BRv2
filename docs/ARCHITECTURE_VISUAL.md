@@ -1,10 +1,10 @@
-# AgroHarvest BR - Arquitetura e Modelagem
+# AgroHarvest BR - Arquitetura e Modelagem Lakehouse
 
-Este documento detalha a estrutura de dados e o fluxo de informações do projeto AgroHarvest BR.
+Este documento detalha a estrutura de dados e o fluxo de informações do projeto AgroHarvest BR, agora operando sob o paradigma de **Data Lakehouse**.
 
 ## 1. Modelo de Dados (Star Schema)
 
-Abaixo está o diagrama Entidade-Relacionamento (ERD) que detalha como as dimensões e fatos se relacionam no PostgreSQL. Este modelo foi desenhado para otimizar consultas analíticas e reduzir a redundância de dados.
+Embora o armazenamento físico seja feito em arquivos **Apache Parquet**, o modelo lógico segue um **Star Schema (Esquema Estrela)**. O DuckDB atua como o motor que provê uma interface SQL sobre esses arquivos, garantindo integridade referencial nas dimensões e performance analítica nos fatos.
 
 ```mermaid
 erDiagram
@@ -12,7 +12,7 @@ erDiagram
     DIM-CULTURA ||--o{ FATO-PAM : "produz"
     DIM-CULTURA ||--o{ FATO-ZARC : "risco"
     DIM-CULTURA ||--o{ FATO-CONAB : "estimativa"
-    DIM-CULTURA ||--o{ FATO-AGROFIT : "insuinos"
+    DIM-CULTURA ||--o{ FATO-AGROFIT : "insumos"
     DIM-CULTURA ||--o{ FATO-SIGEF : "sementes"
     
     DIM-MUNICIPIO ||--o{ FATO-PAM : "localização"
@@ -24,106 +24,77 @@ erDiagram
     DIM-MANTENEDOR ||--o{ FATO-CULTIVAR : "mantém"
 
     DIM-CULTURA {
-        int id_cultura PK
-        string nome_padronizado "Ex: soja, milho"
+        int id_cultura PK "Persistido em DuckDB"
+        string nome_padronizado
     }
     DIM-MUNICIPIO {
-        int id_municipio PK
-        string codigo_ibge "7 dígitos"
+        int id_municipio PK "Persistido em DuckDB"
+        string codigo_ibge
         string nome
         string uf
     }
-    DIM-MANTENEDOR {
-        int id_mantenedor PK
-        string nome
-        string setor
-    }
     FATO-PAM {
+        string parquet_file "data/storage/fato_producao_pam/*.parquet"
         int id_cultura FK
         int id_municipio FK
-        int ano PK
+        int ano
         float area_plantada_ha
         float qtde_produzida_ton
     }
-    FATO-ZARC {
-        int id_cultura FK
-        int id_municipio FK
-        string tipo_solo PK
-        string periodo_plantio PK
-        string risco_climatico
-    }
-    FATO-METEOROLOGIA {
-        int id_municipio FK
-        datetime data PK
-        float precipitacao_mm
-        float temp_media_c
-    }
 ```
 
-## 2. Fluxo de Dados (Pipeline ETL — Registry Pattern)
+## 2. Fluxo de Dados (Lakehouse Engine)
 
-O pipeline utiliza o **Registry Pattern**: cada fonte de dados é uma classe autocontida (`extract + clean + load`) registrada via decorator `@register`. O orquestrador descobre e executa as fontes automaticamente, sem necessidade de configuração manual.
+O pipeline utiliza o **Registry Pattern** para ingestão e o **DuckDB** para a camada de serviço. Os dados são extraídos, limpos e salvos em formato colunar (Parquet) com compressão **Brotli**, otimizando o I/O e o custo de storage.
 
 ```mermaid
 graph LR
-    subgraph "Fontes Gov.br"
-        MAPA["MAPA (ZARC, RNC, SIGEF)"]
-        IBGE["IBGE (SIDRA/PAM)"]
-        INMET["INMET (Clima)"]
-        CONAB["CONAB (Safras)"]
+    subgraph "Fontes Externas"
+        MAPA["MAPA APIs/CSVs"]
+        IBGE["IBGE (SIDRA)"]
+        OM["Open-Meteo"]
+        CONAB["CONAB"]
     end
 
-    subgraph "Pipeline Engine (Python/Docker)"
-        REG["Registry (@register)"]
+    subgraph "Pipeline Engine (Python)"
+        REG["Registry"]
         SRC["Sources (E+C+L)"]
-        DIM["Dimensions"]
-        UTL["Utils (upsert)"]
+        DIM["Dimensions (DuckDB)"]
+        PQ["Parquet Writer (Brotli)"]
     end
 
-    subgraph "Storage & BI"
-        PG[(PostgreSQL DW)]
-        API["FastAPI"]
+    subgraph "Lakehouse Storage"
+        DDB[("cultivares.duckdb")]
+        STG[("data/storage/*.parquet")]
+    end
+
+    subgraph "Consumo"
+        API["FastAPI (SQL)"]
         MB["Metabase"]
     end
 
     MAPA --> SRC
     IBGE --> SRC
-    INMET --> SRC
+    OM --> SRC
     CONAB --> SRC
     
     SRC --> REG
     REG --> DIM
-    DIM --> PG
-    SRC --> UTL
-    UTL --> PG
+    DIM --> DDB
+    SRC --> PQ
+    PQ --> STG
     
-    PG --> API
-    PG --> MB
+    DDB -.-> API
+    STG -.-> API
+    API --> MB
 ```
 
-### Estrutura de Diretórios
+## 3. Benefícios da Arquitetura Atual
 
-```
-src/
-├── main.py                     # Orquestrador genérico (~65 linhas)
-├── db/
-│   └── manager.py              # ORM Models (Star Schema)
-├── pipeline/
-│   ├── registry.py             # @register decorator + discovery
-│   ├── base.py                 # Contrato BaseSource (E+C+L)
-│   ├── utils.py                # upsert_data, normalize_string, get_cultura_id
-│   ├── dimensions.py           # DimCultura, DimMunicipio, DimMantenedor
-│   └── sources/
-│       ├── cultivares.py       # SNPC/MAPA
-│       ├── sidra.py            # PAM/IBGE
-│       ├── zarc.py             # Risco Climático (streaming)
-│       ├── conab.py            # Produção + Preços
-│       ├── agrofit.py          # Agrotóxicos
-│       ├── fertilizantes.py    # SIPEAGRO
-│       ├── sigef.py            # Sementes
-│       └── inmet.py            # Meteorologia
-└── api/                        # FastAPI (endpoints analíticos)
-```
+1.  **Storage Colunar:** Os fatos (milhões de linhas) são armazenados em Parquet, permitindo que o DuckDB leia apenas as colunas necessárias para cada query, reduzindo drasticamente o uso de memória.
+2.  **Zero-Latency Service:** Como o DuckDB roda dentro do mesmo processo da API, não há latência de rede entre o servidor de aplicação e o banco de dados.
+3.  **Portabilidade (Cloud Native):** O repositório `data/storage` pode ser montado como um volume em qualquer nuvem (OCI, AWS, Azure) sem necessidade de serviços de banco de dados gerenciados caros.
+4.  **Escalabilidade Horizontal de Leitura:** Várias instâncias da API podem ler os mesmos arquivos Parquet simultaneamente de forma eficiente.
 
 ---
-*Diagramas gerados para o portfólio AgroHarvest BR.*
+*Documentação atualizada para a fase de Modernização Lakehouse do AgroHarvest BR.*

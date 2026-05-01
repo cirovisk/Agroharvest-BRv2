@@ -1,43 +1,47 @@
 import pytest
 import pandas as pd
 import sys
+import os
+import duckdb
 from pathlib import Path
+
+# Adiciona src ao path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-from src.db.manager import Base, init_db, DimCultura
-
-# Configurando banco In-Memory do SQLite p/ testes rápidos isolados do Postgres de produção
-TEST_DATABASE_URL = "sqlite:///:memory:"
+from db.duck_manager import duck_db
 
 @pytest.fixture(scope="session")
-def engine():
-    _engine = create_engine(TEST_DATABASE_URL, echo=False, connect_args={"check_same_thread": False})
-    Base.metadata.create_all(bind=_engine)
-    yield _engine
-    Base.metadata.drop_all(bind=_engine)
-    _engine.dispose()
+def duck_conn():
+    """Conexão DuckDB em memória para testes."""
+    conn = duckdb.connect(database=":memory:")
+    # Inicializa dimensões
+    from pipeline.dimensions import init_dimensions
+    init_dimensions(conn)
+    return conn
+
+@pytest.fixture(autouse=True)
+def mock_duck_db(duck_conn):
+    """Sobrescreve a conexão do singleton duck_db para usar o banco de testes."""
+    original_conn = duck_db.conn
+    duck_db.conn = duck_conn
+    # Refresh views no banco de memória (caso existam arquivos parquet em data/storage)
+    # Na verdade em testes o storage costuma estar vazio ou mockado.
+    duck_db.refresh_views()
+    yield
+    duck_db.conn = original_conn
 
 @pytest.fixture(scope="function")
-def db_session(engine):
-    connection = engine.connect()
-    # Ponto de savepoint do sqlite para rollback rapido
-    transaction = connection.begin()
-    Session = sessionmaker(bind=connection)
-    session = Session()
-
-    yield session
-
-    session.close()
-    transaction.rollback()
-    connection.close()
+def db_session(duck_conn):
+    """
+    Mock de sessão para compatibilidade com testes antigos.
+    No DuckDB usamos a própria conexão.
+    """
+    return duck_conn
 
 @pytest.fixture
 def mock_sidra_raw():
-    """Mock do JSON cru retornado pela API SIDRA e jogado num Dataframe."""
+    """Mock do JSON cru retornado pela API SIDRA."""
     data = {
         "D2N": ["Área plantada", "Área colhida", "Quantidade produzida", "Área plantada"],
         "V": ["1000", "-", "...", "2000"],
@@ -63,7 +67,7 @@ def mock_zarc_raw():
 
 @pytest.fixture
 def mock_cultivares_raw():
-    """Mock de CSV de cultivares baixado usando pandas direto do SNPC."""
+    """Mock de CSV de cultivares do SNPC."""
     data = {
         "CULTIVAR": ["'BONANZA' / BONA", '"OURO"'],
         "NOME COMUM": ["Soja", "Milho"],
@@ -79,7 +83,7 @@ def mock_cultivares_raw():
 
 @pytest.fixture
 def mock_conab_raw():
-    """Mock dos dados crus da CONAB (Dicionário de Dataframes)."""
+    """Mock dos dados crus da CONAB."""
     df_prod = pd.DataFrame({
         "ano_agricola": ["2023/24"],
         "dsc_safra_previsao": ["1ª Safra"],
@@ -120,17 +124,3 @@ def mock_agrofit_raw():
         "PRAGA_NOME_COMUM": ["Galinha", "Lagarta"]
     }
     return pd.DataFrame(data)
-
-@pytest.fixture(autouse=True)
-def override_get_db(db_session):
-    """Sobrescreve a dependência get_session do FastAPI para usar a sessão de teste (SQLite)."""
-    # Import tardio para evitar conflitos de importação circular
-    from api.main import app
-    from api.dependencies import get_session
-    
-    def _get_session_override():
-        return db_session
-    
-    app.dependency_overrides[get_session] = _get_session_override
-    yield
-    app.dependency_overrides.clear()

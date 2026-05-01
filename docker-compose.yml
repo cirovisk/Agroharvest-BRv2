@@ -1,27 +1,5 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: cultivares_pg
-    environment:
-      POSTGRES_USER: cultivares_user
-      POSTGRES_PASSWORD: cultivares_password
-      POSTGRES_DB: cultivares_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./docs/setup_api_reader.sql:/docker-entrypoint-initdb.d/01_setup_api_reader.sql:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cultivares_user -d cultivares_db"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-
+  # O serviço de ingestão (Pipeline)
   app:
     build:
       context: .
@@ -30,16 +8,12 @@ services:
     env_file: .env
     volumes:
       - .:/app
-    environment:
-      - PYTHONPATH=/app/src
-    depends_on:
-      postgres:
-        condition: service_healthy
     deploy:
       resources:
         limits:
           memory: 4G
 
+  # Rodar testes
   test:
     build:
       context: .
@@ -48,12 +22,10 @@ services:
     env_file: .env
     volumes:
       - .:/app
-    environment:
-      - PYTHONPATH=/app/src
     working_dir: /app
     command: ["python", "-m", "pytest", "tests/", "-v", "--tb=short"]
-    # Testes unitários usam SQLite in-memory (conftest.py) — não precisam de Postgres
 
+  # API FastAPI (DuckDB + Parquet)
   api:
     build:
       context: .
@@ -62,22 +34,16 @@ services:
     env_file: .env
     volumes:
       - .:/app
-    environment:
-      - POSTGRES_USER=api_reader
-      - POSTGRES_PASSWORD=api_reader_pass
-      - PYTHONPATH=/app/src
     ports:
       - "8000:8000"
     command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
-    depends_on:
-      postgres:
-        condition: service_healthy
     restart: unless-stopped
     deploy:
       resources:
         limits:
           memory: 1G
 
+  # Metabase para Dashboards
   metabase:
     image: metabase/metabase:v0.50.21
     container_name: cultivares_metabase
@@ -89,14 +55,10 @@ services:
       - MB_DB_FILE_PATH=/metabase-data/metabase.db
     volumes:
       - metabase_data:/metabase-data
-    depends_on:
-      postgres:
-        condition: service_healthy
     deploy:
       resources:
         limits:
           memory: 2G
 
 volumes:
-  pgdata:
   metabase_data:

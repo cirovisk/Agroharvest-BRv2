@@ -1,40 +1,37 @@
 import pytest
 import pandas as pd
 from src.pipeline.dimensions import preencher_dimensao_cultura, preencher_dimensao_mantenedor, preencher_dimensao_municipio
-from src.db.manager import DimCultura, DimMunicipio, DimMantenedor
 
-def test_preencher_dimensao_cultura(db_session):
+def test_preencher_dimensao_cultura(duck_conn):
     """Testa se a lista de culturas alvo é inserida corretamente na dimensão."""
     culturas = ["Soja", "Milho", "Trigo"]
-    mapping = preencher_dimensao_cultura(db_session, culturas)
+    mapping = preencher_dimensao_cultura(duck_conn, culturas)
     
     assert len(mapping) == 3
     assert "soja" in mapping
     assert "milho" in mapping
     
     # Verifica se persistiu
-    rows = db_session.query(DimCultura).all()
+    rows = duck_conn.execute("SELECT * FROM dim_cultura").df()
     assert len(rows) == 3
 
-def test_preencher_dimensao_mantenedor(db_session):
+def test_preencher_dimensao_mantenedor(duck_conn):
     """Testa o mapeamento de mantenedores a partir do DataFrame de cultivares."""
     df_cult = pd.DataFrame({
         "mantenedor": ["Empresa A", "Empresa B", "Empresa A"],
         "SETOR": ["Privado", "Público", "Privado"]
     })
     
-    mapping = preencher_dimensao_mantenedor(db_session, df_cult)
+    mapping = preencher_dimensao_mantenedor(duck_conn, df_cult)
     
     assert len(mapping) == 2
     assert mapping["Empresa A"] is not None
     
-    rows = db_session.query(DimMantenedor).all()
+    rows = duck_conn.execute("SELECT * FROM dim_mantenedor").df()
     assert len(rows) == 2
 
-def test_preencher_dimensao_municipio(db_session):
-    """Testa o mapeamento de municípios a partir de PAM e ZARC.
-    A função retorna tupla (mun_map_ibge, mun_map_name).
-    """
+def test_preencher_dimensao_municipio(duck_conn):
+    """Testa o mapeamento de municípios a partir de PAM e ZARC."""
     df_pam = pd.DataFrame({
         "cod_municipio_ibge": ["1200013", "1200054"],
         "municipio_nome": ["Mun A", "Mun B"],
@@ -46,7 +43,7 @@ def test_preencher_dimensao_municipio(db_session):
         "uf": ["AC", "AM"],
     })
 
-    mun_map_ibge, mun_map_name = preencher_dimensao_municipio(db_session, df_pam, df_zarc)
+    mun_map_ibge, mun_map_name = preencher_dimensao_municipio(duck_conn, df_pam, df_zarc)
 
     # Mun A (comum), Mun B (PAM), Mun C (ZARC) -> 3 municípios distintos
     assert len(mun_map_ibge) == 3
@@ -57,7 +54,7 @@ def test_preencher_dimensao_municipio(db_session):
     assert ("mun a", "AC") in mun_map_name
     assert ("mun c", "AM") in mun_map_name
 
-    rows = db_session.query(DimMunicipio).all()
+    rows = duck_conn.execute("SELECT * FROM dim_municipio").df()
     assert len(rows) == 3
 
 def test_get_cultura_id_logic():
