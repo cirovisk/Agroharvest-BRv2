@@ -8,6 +8,7 @@ Limpo. Fácil manutenção.
 import argparse
 import logging
 import gc
+import time
 
 from db.duck_manager import duck_db
 from pipeline.registry import get_sources
@@ -15,6 +16,7 @@ from pipeline.dimensions import (
     preencher_dimensao_cultura,
     carregar_municipios_completo_ibge,
 )
+from pipeline.alert_manager import AlertManager
 
 # IMPORTANTE: importar o pacote sources para acionar os @register
 import pipeline.sources  # noqa: F401
@@ -51,6 +53,8 @@ def main():
     lookups["municipios_nome"] = map_nome
 
     success, failed = [], []
+    alert = AlertManager()
+    _start = time.monotonic()
 
     for name in args.sources:
         source_cls = sources.get(name)
@@ -65,6 +69,7 @@ def main():
         except Exception as e:
             failed.append(name)
             log.error(f"✗ {name}: {e}")
+            alert.record_error(name, e)
         finally:
             gc.collect()
 
@@ -72,6 +77,8 @@ def main():
     log.info(f"Sucesso: {success}")
     if failed:
         log.warning(f"Falhas: {failed}")
+
+    alert.send_report(success=success, failed=failed, duration=time.monotonic() - _start)
 
 
 if __name__ == "__main__":
