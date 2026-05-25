@@ -23,11 +23,15 @@ def get_clima(codigo_ibge: Optional[str] = None, data_inicio: Optional[date] = N
         WHERE 1=1
     """
     
+    params = []
     if codigo_ibge:
-        sql += f" AND m.codigo_ibge = '{codigo_ibge}'"
+        sql += " AND m.codigo_ibge = ?"
+        params.append(codigo_ibge.strip())
     if data_inicio:
-        sql += f" AND f.data >= '{data_inicio.strftime('%Y-%m-%d')}'"
+        sql += " AND f.data >= ?"
+        params.append(data_inicio.strftime('%Y-%m-%d'))
     if data_fim:
-        sql += f" AND f.data <= '{data_fim.strftime('%Y-%m-%d')}'"
+        sql += " AND f.data <= ?"
+        params.append(data_fim.strftime('%Y-%m-%d'))
         
-    return paginate_query(sql, page, page_size)
+    return paginate_query(sql, page, page_size, params)

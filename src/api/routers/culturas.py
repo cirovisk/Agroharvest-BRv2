@@ -14,8 +14,8 @@ def list_culturas(page: int = 1, page_size: int = 20):
 
 @router.get("/{cultura}", response_model=CulturaBaseSchema)
 def get_cultura(cultura: str):
-    sql = f"SELECT id_cultura, nome_padronizado FROM dim_cultura WHERE nome_padronizado = '{cultura.lower().strip()}'"
-    df = duck_db.execute_query(sql)
+    sql = "SELECT id_cultura, nome_padronizado FROM dim_cultura WHERE nome_padronizado = ?"
+    df = duck_db.execute_query(sql, (cultura.lower().strip(),))
     if df.empty:
         raise HTTPException(status_code=404, detail="Cultura não encontrada")
     return df.to_dict(orient="records")[0]

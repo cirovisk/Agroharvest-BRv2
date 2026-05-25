@@ -10,15 +10,17 @@ router = APIRouter(prefix="/municipios", tags=["Municípios"])
 @router.get("/", response_model=PaginatedResponse[MunicipioBaseSchema])
 def list_municipios(uf: Optional[str] = None, page: int = 1, page_size: int = 20):
     sql = "SELECT id_municipio, codigo_ibge, nome, uf FROM dim_municipio WHERE 1=1"
+    params = []
     if uf:
-        sql += f" AND uf = '{uf.upper().strip()}'"
+        sql += " AND uf = ?"
+        params.append(uf.upper().strip())
         
-    return paginate_query(sql, page, page_size)
+    return paginate_query(sql, page, page_size, params)
 
 @router.get("/{codigo_ibge}", response_model=MunicipioBaseSchema)
 def get_municipio(codigo_ibge: str):
-    sql = f"SELECT id_municipio, codigo_ibge, nome, uf FROM dim_municipio WHERE codigo_ibge = '{codigo_ibge.strip()}'"
-    df = duck_db.execute_query(sql)
+    sql = "SELECT id_municipio, codigo_ibge, nome, uf FROM dim_municipio WHERE codigo_ibge = ?"
+    df = duck_db.execute_query(sql, (codigo_ibge.strip(),))
     
     if df.empty:
         raise HTTPException(status_code=404, detail="Município não encontrado")

@@ -1,10 +1,10 @@
 """
 Router de Analytics — Endpoints compostos que cruzam múltiplas tabelas do Star Schema.
 Todos os endpoints são somente-leitura e agregam dados de 2+ tabelas fato usando DuckDB OLAP.
+Todas as queries estão 100% protegidas contra SQL Injection via parâmetros preparados.
 """
 from fastapi import APIRouter, HTTPException
 from typing import List, Optional
-import math
 import numpy as np
 
 from db.duck_manager import duck_db
@@ -25,39 +25,56 @@ router = APIRouter(prefix="/analytics", tags=["Analytics"])
 )
 def raio_x_municipal(codigo_ibge: str, cultura: str, ano: int):
     # Dimensões
-    mun_df = duck_db.execute_query(f"SELECT id_municipio, nome, uf FROM dim_municipio WHERE codigo_ibge = '{codigo_ibge}'")
-    if mun_df.empty: raise HTTPException(404, detail="Município não encontrado.")
+    mun_df = duck_db.execute_query(
+        "SELECT id_municipio, nome, uf FROM dim_municipio WHERE codigo_ibge = ?", 
+        (codigo_ibge.strip(),)
+    )
+    if mun_df.empty: 
+        raise HTTPException(404, detail="Município não encontrado.")
     mun = mun_df.iloc[0]
 
-    cult_df = duck_db.execute_query(f"SELECT id_cultura, nome_padronizado FROM dim_cultura WHERE nome_padronizado = '{cultura.lower()}'")
-    if cult_df.empty: raise HTTPException(404, detail="Cultura não encontrada.")
+    cult_df = duck_db.execute_query(
+        "SELECT id_cultura, nome_padronizado FROM dim_cultura WHERE nome_padronizado = ?", 
+        (cultura.lower().strip(),)
+    )
+    if cult_df.empty: 
+        raise HTTPException(404, detail="Cultura não encontrada.")
     cult = cult_df.iloc[0]
 
-    id_mun, id_cult = mun.id_municipio, cult.id_cultura
+    id_mun, id_cult = int(mun.id_municipio), int(cult.id_cultura)
 
     # PAM
-    pam_df = duck_db.execute_query(f"""
+    pam_df = duck_db.execute_query(
+        """
         SELECT area_plantada_ha, qtde_produzida_ton 
         FROM fato_producao_pam 
-        WHERE id_municipio = {id_mun} AND id_cultura = {id_cult} AND ano = {ano}
-    """)
+        WHERE id_municipio = ? AND id_cultura = ? AND ano = ?
+        """,
+        (id_mun, id_cult, ano)
+    )
     pam = pam_df.iloc[0] if not pam_df.empty else None
 
     # ZARC
-    zarc_df = duck_db.execute_query(f"""
+    zarc_df = duck_db.execute_query(
+        """
         SELECT risco_climatico, count(*) as c 
         FROM fato_risco_zarc 
-        WHERE id_municipio = {id_mun} AND id_cultura = {id_cult} 
+        WHERE id_municipio = ? AND id_cultura = ? 
         GROUP BY risco_climatico ORDER BY c DESC LIMIT 1
-    """)
+        """,
+        (id_mun, id_cult)
+    )
     risco = str(zarc_df.iloc[0]['risco_climatico']) if not zarc_df.empty else None
 
     # Clima
-    clima_df = duck_db.execute_query(f"""
+    clima_df = duck_db.execute_query(
+        """
         SELECT avg(temp_media_c) as t, avg(umidade_media) as u, sum(precipitacao_total_mm) as p
         FROM fato_meteorologia
-        WHERE id_municipio = {id_mun} AND year(data) = {ano}
-    """)
+        WHERE id_municipio = ? AND year(data) = ?
+        """,
+        (id_mun, ano)
+    )
     clima = clima_df.iloc[0] if not clima_df.empty else None
 
     resultado_safra = ProducaoPAMSimplesSchema(
@@ -69,15 +86,15 @@ def raio_x_municipal(codigo_ibge: str, cultura: str, ano: int):
     resumo_climatico = None
     if clima is not None and not np.isnan(clima.t):
         resumo_climatico = {
-            "temp_media_c": round(clima.t, 2),
-            "umidade_media": round(clima.u, 2),
-            "precipitacao_anual_mm": round(clima.p, 2)
+            "temp_media_c": round(float(clima.t), 2),
+            "umidade_media": round(float(clima.u), 2) if not np.isnan(clima.u) else None,
+            "precipitacao_anual_mm": round(float(clima.p), 2) if not np.isnan(clima.p) else None
         }
 
     ocorreu_quebra = None
     if pam is not None and not np.isnan(pam.area_plantada_ha) and not np.isnan(pam.qtde_produzida_ton):
         produtividade = pam.qtde_produzida_ton / pam.area_plantada_ha if pam.area_plantada_ha > 0 else 0
-        ocorreu_quebra = produtividade < 1.0
+        ocorreu_quebra = bool(produtividade < 1.0)
 
     return RaioXAgroMunicipalSchema(
         municipio=mun.nome,
@@ -97,42 +114,61 @@ def raio_x_municipal(codigo_ibge: str, cultura: str, ano: int):
     summary="Dossiê completo de insumos: cultivares registradas, sementes e defensivos",
 )
 def dossie_insumos(cultura: str):
-    cult_df = duck_db.execute_query(f"SELECT id_cultura, nome_padronizado FROM dim_cultura WHERE nome_padronizado = '{cultura.lower()}'")
-    if cult_df.empty: raise HTTPException(404, detail="Cultura não encontrada.")
-    id_cult = cult_df.iloc[0].id_cultura
+    cult_df = duck_db.execute_query(
+        "SELECT id_cultura, nome_padronizado FROM dim_cultura WHERE nome_padronizado = ?", 
+        (cultura.lower().strip(),)
+    )
+    if cult_df.empty: 
+        raise HTTPException(404, detail="Cultura não encontrada.")
+    id_cult = int(cult_df.iloc[0].id_cultura)
     nome_cultura = cult_df.iloc[0].nome_padronizado
 
     # RNC
-    rnc = duck_db.execute_query(f"""
+    rnc = duck_db.execute_query(
+        """
         SELECT count(DISTINCT nr_registro) as count 
         FROM fato_registro_cultivares 
-        WHERE id_cultura = {id_cult} AND situacao ILIKE '%REGISTRAD%'
-    """)
+        WHERE id_cultura = ? AND situacao ILIKE '%REGISTRAD%'
+        """,
+        (id_cult,)
+    )
     cultivares_ativos = int(rnc.iloc[0]['count']) if not rnc.empty else 0
 
     # SIGEF
-    sigef = duck_db.execute_query(f"SELECT sum(producao_bruta_t) as vol FROM fato_sigef_producao WHERE id_cultura = {id_cult}")
+    sigef = duck_db.execute_query(
+        "SELECT sum(producao_bruta_t) as vol FROM fato_sigef_producao WHERE id_cultura = ?", 
+        (id_cult,)
+    )
     vol_sementes = float(sigef.iloc[0]['vol']) if not sigef.empty and not np.isnan(sigef.iloc[0]['vol']) else None
 
     # Defensivos (Agrofit)
-    def_df = duck_db.execute_query(f"""
+    def_df = duck_db.execute_query(
+        """
         SELECT DISTINCT marca_comercial 
         FROM fato_agrofit 
-        WHERE id_cultura = {id_cult} LIMIT 20
-    """)
+        WHERE id_cultura = ? LIMIT 20
+        """,
+        (id_cult,)
+    )
     defensivos = def_df['marca_comercial'].tolist() if not def_df.empty else []
 
     # Pragas
-    pragas_df = duck_db.execute_query(f"""
+    pragas_df = duck_db.execute_query(
+        """
         SELECT praga_comum, count(*) as n 
         FROM fato_agrofit 
-        WHERE id_cultura = {id_cult} AND praga_comum IS NOT NULL 
+        WHERE id_cultura = ? AND praga_comum IS NOT NULL 
         GROUP BY praga_comum ORDER BY n DESC LIMIT 10
-    """)
+        """,
+        (id_cult,)
+    )
     pragas = pragas_df['praga_comum'].tolist() if not pragas_df.empty else []
 
     # Grau Tecnologia
-    total_def_df = duck_db.execute_query(f"SELECT count(id_agrofit) as c FROM fato_agrofit WHERE id_cultura = {id_cult}")
+    total_def_df = duck_db.execute_query(
+        "SELECT count(id_agrofit) as c FROM fato_agrofit WHERE id_cultura = ?", 
+        (id_cult,)
+    )
     total_def = int(total_def_df.iloc[0]['c']) if not total_def_df.empty else 0
     
     if total_def >= 100: grau = "Alto"
@@ -155,28 +191,38 @@ def dossie_insumos(cultura: str):
     summary="Estimativa de receita bruta por cultura/UF/ano cruzando produção e preços",
 )
 def viabilidade_economica(cultura: str, uf: str, ano: int):
-    cult_df = duck_db.execute_query(f"SELECT id_cultura, nome_padronizado FROM dim_cultura WHERE nome_padronizado = '{cultura.lower()}'")
-    if cult_df.empty: raise HTTPException(404, detail="Cultura não encontrada.")
-    id_cult = cult_df.iloc[0].id_cultura
-    uf = uf.upper()
+    cult_df = duck_db.execute_query(
+        "SELECT id_cultura, nome_padronizado FROM dim_cultura WHERE nome_padronizado = ?", 
+        (cultura.lower().strip(),)
+    )
+    if cult_df.empty: 
+        raise HTTPException(404, detail="Cultura não encontrada.")
+    id_cult = int(cult_df.iloc[0].id_cultura)
+    uf_upper = uf.upper().strip()
 
     # PAM Produção
-    pam_df = duck_db.execute_query(f"""
+    pam_df = duck_db.execute_query(
+        """
         SELECT sum(p.qtde_produzida_ton) as prod, sum(p.area_plantada_ha) as area
         FROM fato_producao_pam p
         JOIN dim_municipio m ON p.id_municipio = m.id_municipio
-        WHERE p.id_cultura = {id_cult} AND m.uf = '{uf}' AND p.ano = {ano}
-    """)
+        WHERE p.id_cultura = ? AND m.uf = ? AND p.ano = ?
+        """,
+        (id_cult, uf_upper, ano)
+    )
     pam = pam_df.iloc[0] if not pam_df.empty else None
     producao_ton = float(pam.prod) if pam is not None and not np.isnan(pam.prod) else None
     area_ha = float(pam.area) if pam is not None and not np.isnan(pam.area) else None
 
     # Preço CONAB
-    preco_df = duck_db.execute_query(f"""
+    preco_df = duck_db.execute_query(
+        """
         SELECT avg(valor_kg) as preco
         FROM fato_precos_conab_mensal
-        WHERE id_cultura = {id_cult} AND uf = '{uf}' AND ano = {ano}
-    """)
+        WHERE id_cultura = ? AND uf = ? AND ano = ?
+        """,
+        (id_cult, uf_upper, ano)
+    )
     preco_kg = float(preco_df.iloc[0]['preco']) if not preco_df.empty and not np.isnan(preco_df.iloc[0]['preco']) else None
     preco_ton = preco_kg * 1000 if preco_kg else None
 
@@ -191,7 +237,7 @@ def viabilidade_economica(cultura: str, uf: str, ano: int):
     return ViabilidadeEconomicaSchema(
         ano=ano,
         cultura=cult_df.iloc[0].nome_padronizado,
-        uf=uf,
+        uf=uf_upper,
         producao_total_ton=producao_ton,
         preco_medio_anual_ton=round(preco_ton, 2) if preco_ton else None,
         valor_teto_atingido=round(preco_ton * 1.2, 2) if preco_ton else None,
@@ -206,29 +252,40 @@ def viabilidade_economica(cultura: str, uf: str, ano: int):
     summary="Avalia disponibilidade de insumos e condições climáticas para aplicação",
 )
 def janela_aplicacao(codigo_ibge: str, ano: int, mes: int):
-    mun_df = duck_db.execute_query(f"SELECT id_municipio, nome, uf FROM dim_municipio WHERE codigo_ibge = '{codigo_ibge}'")
-    if mun_df.empty: raise HTTPException(404, detail="Município não encontrado.")
+    mun_df = duck_db.execute_query(
+        "SELECT id_municipio, nome, uf FROM dim_municipio WHERE codigo_ibge = ?", 
+        (codigo_ibge.strip(),)
+    )
+    if mun_df.empty: 
+        raise HTTPException(404, detail="Município não encontrado.")
     mun = mun_df.iloc[0]
+    id_mun = int(mun.id_municipio)
 
     # Fertilizantes SIPEAGRO
-    estab_df = duck_db.execute_query(f"""
+    estab_df = duck_db.execute_query(
+        """
         SELECT count(id_fertilizante) as c 
         FROM fato_fertilizantes_estabelecimentos 
-        WHERE uf = '{mun.uf}' AND status_registro ILIKE '%ATIVO%'
-    """)
+        WHERE uf = ? AND status_registro ILIKE '%ATIVO%'
+        """,
+        (mun.uf,)
+    )
     estab_count = int(estab_df.iloc[0]['c']) if not estab_df.empty else 0
 
     # Meteorologia
-    chuva_df = duck_db.execute_query(f"""
+    chuva_df = duck_db.execute_query(
+        """
         SELECT sum(precipitacao_total_mm) as p
         FROM fato_meteorologia
-        WHERE id_municipio = {mun.id_municipio} AND year(data) = {ano} AND month(data) = {mes}
-    """)
+        WHERE id_municipio = ? AND year(data) = ? AND month(data) = ?
+        """,
+        (id_mun, ano, mes)
+    )
     chuva_mm = float(chuva_df.iloc[0]['p']) if not chuva_df.empty and not np.isnan(chuva_df.iloc[0]['p']) else None
 
     janela_perfeita = None
     if chuva_mm is not None:
-        janela_perfeita = (50.0 <= chuva_mm <= 200.0) and estab_count >= 3
+        janela_perfeita = bool((50.0 <= chuva_mm <= 200.0) and estab_count >= 3)
 
     if estab_count >= 50: capacidade = "Alta"
     elif estab_count >= 15: capacidade = "Média"
@@ -252,36 +309,47 @@ def janela_aplicacao(codigo_ibge: str, ano: int, mes: int):
     summary="Compara estimativas CONAB com resultados reais do IBGE/PAM por UF e safra",
 )
 def auditoria_estimativas(cultura: str, uf: Optional[str] = None):
-    cult_df = duck_db.execute_query(f"SELECT id_cultura, nome_padronizado FROM dim_cultura WHERE nome_padronizado = '{cultura.lower()}'")
-    if cult_df.empty: raise HTTPException(404, detail="Cultura não encontrada.")
-    id_cult = cult_df.iloc[0].id_cultura
+    cult_df = duck_db.execute_query(
+        "SELECT id_cultura, nome_padronizado FROM dim_cultura WHERE nome_padronizado = ?", 
+        (cultura.lower().strip(),)
+    )
+    if cult_df.empty: 
+        raise HTTPException(404, detail="Cultura não encontrada.")
+    id_cult = int(cult_df.iloc[0].id_cultura)
     nome_cult = cult_df.iloc[0].nome_padronizado
 
-    uf_filter = f"AND uf = '{uf.upper()}'" if uf else ""
-    
     # CONAB Estimativas
-    conab_df = duck_db.execute_query(f"""
+    sql_conab = """
         SELECT uf, ano_agricola, sum(producao_mil_t) as estimativa
         FROM fato_producao_conab
-        WHERE id_cultura = {id_cult} {uf_filter}
-        GROUP BY uf, ano_agricola
-        LIMIT 50
-    """)
+        WHERE id_cultura = ?
+    """
+    params_conab = [id_cult]
+    if uf:
+        sql_conab += " AND uf = ?"
+        params_conab.append(uf.upper().strip())
+    
+    sql_conab += " GROUP BY uf, ano_agricola LIMIT 50"
+    conab_df = duck_db.execute_query(sql_conab, tuple(params_conab))
 
     results = []
     for _, row in conab_df.iterrows():
         ano_agricola = row['ano_agricola']
         try:
             ano_pam = int(str(ano_agricola).split("/")[0])
-        except: continue
+        except: 
+            continue
 
         # PAM Realizado
-        pam_df = duck_db.execute_query(f"""
+        pam_df = duck_db.execute_query(
+            """
             SELECT sum(p.qtde_produzida_ton) as prod
             FROM fato_producao_pam p
             JOIN dim_municipio m ON p.id_municipio = m.id_municipio
-            WHERE p.id_cultura = {id_cult} AND m.uf = '{row.uf}' AND p.ano = {ano_pam}
-        """)
+            WHERE p.id_cultura = ? AND m.uf = ? AND p.ano = ?
+            """,
+            (id_cult, row.uf, ano_pam)
+        )
         
         realizado_ton = float(pam_df.iloc[0]['prod']) if not pam_df.empty and not np.isnan(pam_df.iloc[0]['prod']) else None
         realizado_mil_t = (realizado_ton / 1000.0) if realizado_ton else None

@@ -24,14 +24,18 @@ def get_pam(cultura: Optional[str] = None, uf: Optional[str] = None, ano: Option
         JOIN dim_municipio m ON p.id_municipio = m.id_municipio
         WHERE 1=1
     """
+    params = []
     if cultura:
-        sql += f" AND c.nome_padronizado = '{cultura.lower()}'"
+        sql += " AND c.nome_padronizado = ?"
+        params.append(cultura.lower().strip())
     if uf:
-        sql += f" AND m.uf = '{uf.upper()}'"
+        sql += " AND m.uf = ?"
+        params.append(uf.upper().strip())
     if ano:
-        sql += f" AND p.ano = {ano}"
+        sql += " AND p.ano = ?"
+        params.append(ano)
 
-    return paginate_query(sql, page, page_size)
+    return paginate_query(sql, page, page_size, params)
 
 @router.get("/conab", response_model=PaginatedResponse[ProducaoConabSchema])
 def get_conab(cultura: Optional[str] = None, uf: Optional[str] = None, ano_agricola: Optional[str] = None, page: int = 1, page_size: int = 20):
@@ -49,14 +53,18 @@ def get_conab(cultura: Optional[str] = None, uf: Optional[str] = None, ano_agric
         JOIN dim_cultura c ON p.id_cultura = c.id_cultura
         WHERE 1=1
     """
+    params = []
     if cultura:
-        sql += f" AND c.nome_padronizado = '{cultura.lower()}'"
+        sql += " AND c.nome_padronizado = ?"
+        params.append(cultura.lower().strip())
     if uf:
-        sql += f" AND p.uf = '{uf.upper()}'"
+        sql += " AND p.uf = ?"
+        params.append(uf.upper().strip())
     if ano_agricola:
-        sql += f" AND p.ano_agricola = '{ano_agricola}'"
+        sql += " AND p.ano_agricola = ?"
+        params.append(ano_agricola.strip())
 
-    return paginate_query(sql, page, page_size)
+    return paginate_query(sql, page, page_size, params)
 
 @router.get("/sigef", response_model=PaginatedResponse[SigefProducaoSchema])
 def get_sigef(cultura: Optional[str] = None, uf: Optional[str] = None, safra: Optional[str] = None, page: int = 1, page_size: int = 20):
@@ -77,11 +85,15 @@ def get_sigef(cultura: Optional[str] = None, uf: Optional[str] = None, safra: Op
         JOIN dim_municipio m ON s.id_municipio = m.id_municipio
         WHERE 1=1
     """
+    params = []
     if cultura:
-        sql += f" AND c.nome_padronizado = '{cultura.lower()}'"
+        sql += " AND c.nome_padronizado = ?"
+        params.append(cultura.lower().strip())
     if uf:
-        sql += f" AND m.uf = '{uf.upper()}'"
+        sql += " AND m.uf = ?"
+        params.append(uf.upper().strip())
     if safra:
-        sql += f" AND s.safra = '{safra}'"
+        sql += " AND s.safra = ?"
+        params.append(safra.strip())
 
-    return paginate_query(sql, page, page_size)
+    return paginate_query(sql, page, page_size, params)

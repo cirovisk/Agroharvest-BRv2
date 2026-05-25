@@ -20,12 +20,15 @@ def get_agrofit(cultura: Optional[str] = None, classe: Optional[str] = None, pag
         JOIN dim_cultura c ON a.id_cultura = c.id_cultura
         WHERE 1=1
     """
+    params = []
     if cultura:
-        sql += f" AND c.nome_padronizado = '{cultura.lower()}'"
+        sql += " AND c.nome_padronizado = ?"
+        params.append(cultura.lower().strip())
     if classe:
-        sql += f" AND a.classe = '{classe.upper()}'"
+        sql += " AND a.classe = ?"
+        params.append(classe.upper().strip())
 
-    return paginate_query(sql, page, page_size)
+    return paginate_query(sql, page, page_size, params)
 
 @router.get("/fertilizantes", response_model=PaginatedResponse[FertilizanteSchema])
 def get_fertilizantes(uf: Optional[str] = None, atividade: Optional[str] = None, page: int = 1, page_size: int = 20):
@@ -41,9 +44,12 @@ def get_fertilizantes(uf: Optional[str] = None, atividade: Optional[str] = None,
         FROM fato_fertilizantes_estabelecimentos
         WHERE 1=1
     """
+    params = []
     if uf:
-        sql += f" AND uf = '{uf.upper()}'"
+        sql += " AND uf = ?"
+        params.append(uf.upper().strip())
     if atividade:
-        sql += f" AND atividade = '{atividade.upper()}'"
+        sql += " AND atividade = ?"
+        params.append(atividade.upper().strip())
 
-    return paginate_query(sql, page, page_size)
+    return paginate_query(sql, page, page_size, params)

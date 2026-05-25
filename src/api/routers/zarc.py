@@ -34,11 +34,15 @@ def listar_risco_zarc(
         JOIN dim_municipio m ON z.id_municipio = m.id_municipio
         WHERE 1=1
     """
+    params = []
     if codigo_ibge:
-        sql += f" AND m.codigo_ibge = '{codigo_ibge}'"
+        sql += " AND m.codigo_ibge = ?"
+        params.append(codigo_ibge.strip())
     if cultura:
-        sql += f" AND c.nome_padronizado = '{cultura.lower()}'"
+        sql += " AND c.nome_padronizado = ?"
+        params.append(cultura.lower().strip())
     if id_solo:
-        sql += f" AND z.tipo_solo = '{id_solo}'"
+        sql += " AND z.tipo_solo = ?"
+        params.append(id_solo.strip())
 
-    return paginate_query(sql, page, page_size)
+    return paginate_query(sql, page, page_size, params)

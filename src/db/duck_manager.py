@@ -44,10 +44,10 @@ class DuckManager:
             except Exception as e:
                 log.error(f"Falha ao mapear tabela {table}: {e}")
 
-    def execute_query(self, sql: str) -> pd.DataFrame:
-        """Executa SQL e retorna o resultado como um DataFrame do Pandas."""
+    def execute_query(self, sql: str, params: tuple | list | dict | None = None) -> pd.DataFrame:
+        """Executa SQL parametrizado e retorna o resultado como um DataFrame do Pandas."""
         try:
-            return self.conn.execute(sql).df()
+            return self.conn.execute(sql, params).df()
         except Exception as e:
             log.error(f"Erro na query DuckDB: {e}")
             return pd.DataFrame()
