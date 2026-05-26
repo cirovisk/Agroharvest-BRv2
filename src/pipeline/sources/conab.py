@@ -3,10 +3,10 @@
 import os
 import logging
 import pandas as pd
-import requests
 
 from pipeline.registry import register
 from pipeline.base import BaseSource
+from pipeline.schemas import ConabProducaoSchema, ConabPrecosSchema
 from pipeline.utils import normalize_string, get_cultura_id
 
 log = logging.getLogger(__name__)
@@ -86,13 +86,20 @@ class ConabPipeline(BaseSource):
             self.log.info(f"Arquivo antigo arquivado: {os.path.basename(archive_path)}")
 
         try:
-            resp = requests.get(url, timeout=120)
+            resp = self.http.get(url, timeout=120)
             resp.raise_for_status()
             with open(local_path, "wb") as f:
                 f.write(resp.content)
             self.log.info(f"Download concluído: {filename}")
         except Exception as e:
             self.log.error(f"Erro no download de {url}: {e}")
+
+    def _get_schema_for_key(self, key):
+        if 'producao' in key:
+            return ConabProducaoSchema
+        if 'precos' in key:
+            return ConabPrecosSchema
+        return None
 
     # ---- CLEAN ----
 

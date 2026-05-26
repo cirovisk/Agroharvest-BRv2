@@ -30,7 +30,7 @@ def test_open_meteo_aggregation(mock_open_meteo_daily_data):
 def test_open_meteo_fetch_logic():
     from unittest.mock import patch
     
-    with patch("requests.get") as mock_get:
+    with patch("pipeline.http_client.ResilientHTTPClient.get") as mock_get:
         mock_get.return_value.status_code = 200
         mock_get.return_value.json.return_value = {
             "daily": {"time": ["2024-01-01"], "precipitation_sum": [0.0], "temperature_2m_max": [30.0], "temperature_2m_min": [20.0], "temperature_2m_mean": [25.0]}

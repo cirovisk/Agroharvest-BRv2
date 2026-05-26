@@ -3,10 +3,10 @@
 import os
 import logging
 import pandas as pd
-import requests
 
 from pipeline.registry import register
 from pipeline.base import BaseSource
+from pipeline.schemas import FertilizantesSchema
 from pipeline.utils import map_municipio_by_name
 
 log = logging.getLogger(__name__)
@@ -21,6 +21,10 @@ class FertilizantesPipeline(BaseSource):
 
     DOWNLOAD_URL = "https://dados.agricultura.gov.br/dataset/52a01565-72d6-410e-b21b-64035831a7be/resource/e0bbc9d5-f161-448b-a6d4-c7beb312ec33/download/sipeagrofertilizante.csv"
     FILENAME = "sipeagrofertilizante.csv"
+    schema = FertilizantesSchema
+
+    def _http_config(self):
+        return {"ssl_fallback": True, "timeout": 120}
 
     def __init__(self, data_dir="data/fertilizantes", force_refresh=False):
         super().__init__()
@@ -77,25 +81,8 @@ class FertilizantesPipeline(BaseSource):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
         try:
-            # Primeira tentativa: com verificação SSL habilitada
-            resp = requests.get(self.DOWNLOAD_URL, headers=headers, timeout=120, verify=True)
+            resp = self.http.get(self.DOWNLOAD_URL, headers=headers)
             resp.raise_for_status()
-        except requests.exceptions.SSLError as ssl_err:
-            # O servidor do MAPA/SIPEAGRO ocasionalmente apresenta problema de cadeia de certificado.
-            # Segunda tentativa sem verificação, com log de aviso explícito.
-            self.log.warning(
-                f"SSL handshake falhou ({ssl_err}). "
-                "Repetindo sem verificação de certificado. "
-                "Recomendação: instale o certificado raiz do MAPA ou adicione-o ao bundle do certifi."
-            )
-            import urllib3
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            try:
-                resp = requests.get(self.DOWNLOAD_URL, headers=headers, timeout=120, verify=False)
-                resp.raise_for_status()
-            except Exception as e:
-                self.log.error(f"Erro no download mesmo sem verificação SSL: {e}")
-                return
         except Exception as e:
             self.log.error(f"Erro no download de {self.DOWNLOAD_URL}: {e}")
             return

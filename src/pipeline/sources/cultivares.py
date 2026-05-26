@@ -4,7 +4,7 @@ import re
 import numpy as np
 import logging
 import pandas as pd
-import requests
+from pipeline.schemas import CultivaresSchema
 from pathlib import Path
 
 from pipeline.registry import register
@@ -46,6 +46,8 @@ class CultivaresPipeline(BaseSource):
     Extrator SNPC: Registro Nacional de Cultivares (MAPA).
     """
 
+    schema = CultivaresSchema
+
     SNPC_URL   = "https://sistemas.agricultura.gov.br/snpc/cultivarweb/cultivares_registradas.php"
     SNPC_QUERY = {"acao": "pesquisar", "postado": "1"}
     SNPC_DATA  = {"exportar": "csv"}
@@ -71,7 +73,7 @@ class CultivaresPipeline(BaseSource):
 
         self.log.info("Baixando CSV do SNPC/MAPA...")
         try:
-            resp = requests.post(
+            resp = self.http.post(
                 self.SNPC_URL,
                 params=self.SNPC_QUERY,
                 data=self.SNPC_DATA,

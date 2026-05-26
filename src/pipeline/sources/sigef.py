@@ -4,10 +4,10 @@ import os
 import io
 import logging
 import pandas as pd
-import requests
 
 from pipeline.registry import register
 from pipeline.base import BaseSource
+from pipeline.schemas import SigefProducaoSchema, SigefReservaSchema
 from pipeline.utils import normalize_string, get_cultura_id, map_municipio_by_name
 
 log = logging.getLogger(__name__)
@@ -24,6 +24,13 @@ class SigefPipeline(BaseSource):
         "campos_producao": "https://dados.agricultura.gov.br/dataset/c7784a6e-f0ec-4196-a1ce-1d2d4784a58e/resource/6ab20c11-73a0-4ab0-8e13-2420d48dd6f5/download/sigefcamposproducaodesementes.csv",
         "reserva_semente": "https://dados.agricultura.gov.br/dataset/c7784a6e-f0ec-4196-a1ce-1d2d4784a58e/resource/3fc8e266-ec41-40b0-8d62-157b91b36b2c/download/sigefdeclaracaoareaproducaouseproprio.csv"
     }
+
+    def _get_schema_for_key(self, key):
+        if key == 'campos_producao':
+            return SigefProducaoSchema
+        if key == 'reserva_semente':
+            return SigefReservaSchema
+        return None
 
     def __init__(self, data_dir="data/sigef", use_cache=True):
         super().__init__()
@@ -49,7 +56,7 @@ class SigefPipeline(BaseSource):
 
             self.log.info(f"Baixando SIGEF {key} de {url}...")
             try:
-                resp = requests.get(url, timeout=60, verify=False)  # Frequent SSL issues on MAPA
+                resp = self.http.get(url, timeout=60, verify=False)  # Frequent SSL issues on MAPA
                 resp.raise_for_status()
                 with open(local_path, "wb") as f:
                     f.write(resp.content)

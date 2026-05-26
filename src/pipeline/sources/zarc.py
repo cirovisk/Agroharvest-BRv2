@@ -14,12 +14,13 @@ ESTRATÉGIAS DE OTIMIZAÇÃO PARA GRANDES VOLUMES:
 
 import logging
 import pandas as pd
-import requests
+
 from pathlib import Path
 
 from pipeline.registry import register
 from pipeline.base import BaseSource
 from pipeline.utils import normalize_string, get_cultura_id
+from pipeline.schemas import ZarcSchema
 
 log = logging.getLogger(__name__)
 
@@ -32,6 +33,7 @@ class ZarcPipeline(BaseSource):
     """
 
     TARGET_CROPS = ["soja", "milho", "trigo", "algodao", "cana-de-acucar"]
+    schema = ZarcSchema
 
     def __init__(self, use_cache: bool = True, data_dir: str = "data/zarc", chunksize: int = 50000):
         super().__init__()
@@ -52,6 +54,7 @@ class ZarcPipeline(BaseSource):
         total = 0
         for chunk in self.extract():
             clean_chunk = self.clean(chunk)
+            clean_chunk = self.validate(clean_chunk)
             result = self.load(clean_chunk, lookups)
             # Extrai número do resultado
             try:
@@ -84,11 +87,7 @@ class ZarcPipeline(BaseSource):
             
             if not raw_file.exists():
                 self.log.info(f"Baixando base unificada ZARC (Atenção: arquivo muito grande, pode levar alguns minutos)...")
-                with requests.get(url_safra_23_24, stream=True, verify=False, timeout=60) as r:
-                    r.raise_for_status()
-                    with open(raw_file, 'wb') as f:
-                        for chunk in r.iter_content(chunk_size=8192): 
-                            f.write(chunk)
+                self.http.download(url_safra_23_24, str(raw_file), verify=False, timeout=60)
                 self.log.info("Download unificado concluído.")
 
             self.log.info("Separando arquivo massivo por cultura para otimização de leitura futura...")

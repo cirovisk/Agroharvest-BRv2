@@ -2,11 +2,11 @@
 
 import logging
 import pandas as pd
-import requests
 from pathlib import Path
 
 from pipeline.registry import register
 from pipeline.base import BaseSource
+from pipeline.schemas import AgrofitSchema
 from pipeline.utils import normalize_string, get_cultura_id
 
 log = logging.getLogger(__name__)
@@ -22,6 +22,7 @@ class AgrofitPipeline(BaseSource):
     HEADERS = {
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     }
+    schema = AgrofitSchema
 
     def __init__(self, use_cache: bool = True, cache_path: str = "data/agrofit_produtos.csv"):
         super().__init__()
@@ -39,7 +40,7 @@ class AgrofitPipeline(BaseSource):
 
         self.log.info(f"Baixando dados do Agrofit (volumetria alta): {self.DATA_URL}")
         try:
-            resp = requests.get(self.DATA_URL, headers=self.HEADERS, timeout=300)
+            resp = self.http.get(self.DATA_URL, headers=self.HEADERS, timeout=300)
             resp.raise_for_status()
 
             self.cache_path.parent.mkdir(parents=True, exist_ok=True)

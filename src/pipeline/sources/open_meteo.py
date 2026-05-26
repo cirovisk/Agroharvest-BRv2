@@ -3,15 +3,16 @@ Pipeline Open-Meteo: Dados Meteorológicos Históricos.
 Substitui INMET devido a instabilidades.
 """
 
+import io
 import os
 import logging
 import pandas as pd
-import requests
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from pipeline.registry import register
 from pipeline.base import BaseSource
+from pipeline.schemas import OpenMeteoSchema
 
 log = logging.getLogger(__name__)
 
@@ -22,6 +23,7 @@ class OpenMeteoPipeline(BaseSource):
     """
 
     API_BASE = "https://archive-api.open-meteo.com/v1/archive"
+    schema = OpenMeteoSchema
 
     def __init__(self, days_history=730, use_cache=True, data_dir="data/open_meteo"):
         super().__init__()
@@ -66,6 +68,7 @@ class OpenMeteoPipeline(BaseSource):
 
         # 4. Clean
         df_meteo = self.clean(raw_data)
+        df_meteo = self.validate(df_meteo)
 
         if df_meteo.empty:
             return "0 registros (sem dados meteorológicos)"
@@ -83,7 +86,8 @@ class OpenMeteoPipeline(BaseSource):
         self.log.info("Baixando coordenadas de municípios...")
         try:
             url = "https://raw.githubusercontent.com/kelvins/Municipios-Brasileiros/main/csv/municipios.csv"
-            df = pd.read_csv(url)
+            resp = self.http.get(url, timeout=30)
+            df = pd.read_csv(io.BytesIO(resp.content))
             if self.use_cache:
                 df.to_csv(cache_file, index=False)
             return df
@@ -114,7 +118,7 @@ class OpenMeteoPipeline(BaseSource):
                 f"&timezone=America/Sao_Paulo"
             )
             try:
-                resp = requests.get(url, timeout=30)
+                resp = self.http.get(url, timeout=30)
                 if resp.status_code == 200:
                     data = resp.json()
                     if "daily" in data:

@@ -4,7 +4,7 @@ import os
 import logging
 import numpy as np
 import pandas as pd
-import requests
+from pipeline.schemas import SidraSchema
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from pipeline.registry import register
@@ -20,6 +20,8 @@ class SidraPipeline(BaseSource):
     Extrator PAM: Produção Agrícola Municipal (SIDRA/IBGE).
     Tabela 5457: Lavouras Temporárias.
     """
+
+    schema = SidraSchema
 
     TARGET_CROPS = {
         "soja": 40124,
@@ -45,7 +47,7 @@ class SidraPipeline(BaseSource):
         url = "https://servicodados.ibge.gov.br/api/v3/agregados/5457/metadados"
         metadata_map = {}
         try:
-            resp = requests.get(url, timeout=15)
+            resp = self.http.get(url, timeout=15)
             resp.raise_for_status()
             data = resp.json()
             for cls in data.get("classificacoes", []):
@@ -88,7 +90,7 @@ class SidraPipeline(BaseSource):
             self.log.info(f"Buscando dados IBGE para {crop_name} (ID: {crop_id})")
             url = f"https://apisidra.ibge.gov.br/values/t/5457/n6/all/v/{variables}/p/{self.ano}/c782/{crop_id}"
             try:
-                resp = requests.get(url, timeout=30)
+                resp = self.http.get(url, timeout=30)
                 if resp.status_code == 200:
                     data = resp.json()
                     if data and len(data) > 1:
