@@ -35,6 +35,10 @@ class ZarcPipeline(BaseSource):
     TARGET_CROPS = ["soja", "milho", "trigo", "algodao", "cana-de-acucar"]
     schema = ZarcSchema
 
+    def _http_config(self) -> dict:
+        # Habilita fallback SSL para resolver problemas frequentes com servidores do MAPA
+        return {"ssl_fallback": True}
+
     def __init__(self, use_cache: bool = True, data_dir: str = "data/zarc", chunksize: int = 50000):
         super().__init__()
         self.use_cache = use_cache
@@ -87,7 +91,7 @@ class ZarcPipeline(BaseSource):
             
             if not raw_file.exists():
                 self.log.info(f"Baixando base unificada ZARC (Atenção: arquivo muito grande, pode levar alguns minutos)...")
-                self.http.download(url_safra_23_24, str(raw_file), verify=False, timeout=60)
+                self.http.download(url_safra_23_24, str(raw_file), timeout=60)
                 self.log.info("Download unificado concluído.")
 
             self.log.info("Separando arquivo massivo por cultura para otimização de leitura futura...")

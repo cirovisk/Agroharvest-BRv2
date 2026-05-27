@@ -32,6 +32,10 @@ class SigefPipeline(BaseSource):
             return SigefReservaSchema
         return None
 
+    def _http_config(self) -> dict:
+        # Habilita fallback SSL para resolver problemas frequentes com servidores do MAPA
+        return {"ssl_fallback": True}
+
     def __init__(self, data_dir="data/sigef", use_cache=True):
         super().__init__()
         self.data_dir = data_dir
@@ -56,7 +60,7 @@ class SigefPipeline(BaseSource):
 
             self.log.info(f"Baixando SIGEF {key} de {url}...")
             try:
-                resp = self.http.get(url, timeout=60, verify=False)  # Frequent SSL issues on MAPA
+                resp = self.http.get(url, timeout=60)  # Frequent SSL issues on MAPA -> handled by ssl_fallback
                 resp.raise_for_status()
                 with open(local_path, "wb") as f:
                     f.write(resp.content)

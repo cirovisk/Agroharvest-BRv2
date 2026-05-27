@@ -28,7 +28,15 @@ class DuckManager:
         # Lista subpastas que representam nossas "tabelas"
         tables = [d for d in os.listdir(self.storage_path) if os.path.isdir(os.path.join(self.storage_path, d))]
         
+        import re
+        # Identificador SQL válido: deve começar com letra ou underscore e ter apenas alfanuméricos/underscores
+        safe_sql_identifier = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+
         for table in tables:
+            if not safe_sql_identifier.match(table):
+                log.warning(f"Nome de tabela/diretório suspeito ignorado para evitar SQL Injection: '{table}'")
+                continue
+
             # Padrão para ler todos os parquets da pasta da tabela
             parquet_pattern = os.path.join(self.storage_path, table, "*.parquet")
             
