@@ -67,15 +67,7 @@ class FertilizantesPipeline(BaseSource):
         self.log.info(f"Fazendo download de {self.DOWNLOAD_URL}...")
 
         # Arquivamento (Idempotência/Histórico)
-        if os.path.exists(local_path):
-            import shutil
-            from datetime import datetime
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            archive_dir = os.path.join(self.data_dir, "archive")
-            os.makedirs(archive_dir, exist_ok=True)
-            archive_path = os.path.join(archive_dir, f"sipeagrofertilizante_{timestamp}.csv")
-            shutil.move(local_path, archive_path)
-            self.log.info(f"Arquivo antigo arquivado em {archive_path}")
+        self._archive_file(local_path, self.data_dir)
 
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"

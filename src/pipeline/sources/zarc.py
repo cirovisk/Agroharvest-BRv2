@@ -32,7 +32,8 @@ class ZarcPipeline(BaseSource):
     Lê arquivos CSV locais por cultura.
     """
 
-    TARGET_CROPS = ["soja", "milho", "trigo", "algodao", "cana-de-acucar"]
+    from config import CULTURAS_ALVO
+    TARGET_CROPS = CULTURAS_ALVO
     schema = ZarcSchema
 
     def _http_config(self) -> dict:

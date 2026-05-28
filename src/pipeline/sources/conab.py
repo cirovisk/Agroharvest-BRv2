@@ -75,15 +75,8 @@ class ConabPipeline(BaseSource):
         url = self.BASE_URL + filename
 
         # Arquivamento (apenas para Mensais e Produção/Histórico)
-        if os.path.exists(local_path) and "semanal" not in filename:
-            import shutil
-            from datetime import datetime
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            archive_dir = os.path.join(self.data_dir, "archive")
-            os.makedirs(archive_dir, exist_ok=True)
-            archive_path = os.path.join(archive_dir, f"{os.path.splitext(filename)[0]}_{timestamp}.txt")
-            shutil.move(local_path, archive_path)
-            self.log.info(f"Arquivo antigo arquivado: {os.path.basename(archive_path)}")
+        if "semanal" not in filename:
+            self._archive_file(local_path, self.data_dir)
 
         try:
             resp = self.http.get(url, timeout=120)
@@ -136,7 +129,7 @@ class ConabPipeline(BaseSource):
         df = df.rename(columns=renames)
         cols_num = ["area_plantada_mil_ha", "producao_mil_t", "produtividade_t_ha"]
         for col in cols_num:
-            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0)
+            df[col] = pd.to_numeric(df[col], errors="coerce")
 
         df["cultura"] = normalize_string(df["produto_raw"])
         cols_final = ["ano_agricola", "safra", "uf", "cultura", "area_plantada_mil_ha", "producao_mil_t", "produtividade_t_ha"]
@@ -162,7 +155,7 @@ class ConabPipeline(BaseSource):
 
         # Casting e Limpeza
         if "valor_kg" in df.columns:
-            df["valor_kg"] = pd.to_numeric(df["valor_kg"].str.replace(",", "."), errors="coerce").fillna(0.0)
+            df["valor_kg"] = pd.to_numeric(df["valor_kg"].str.replace(",", "."), errors="coerce")
         if "ano" in df.columns:
             df["ano"] = pd.to_numeric(df["ano"], errors="coerce").fillna(0).astype(int)
         if "mes" in df.columns:

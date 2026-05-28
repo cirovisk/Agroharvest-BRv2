@@ -2,12 +2,12 @@ from fastapi import APIRouter
 from datetime import date
 from typing import Optional
 
-from api.schemas import MetereologiaSchema, PaginatedResponse
+from api.schemas import MeteorologiaSchema, PaginatedResponse
 from api.utils import paginate_query
 
 router = APIRouter(prefix="/clima", tags=["Clima"])
 
-@router.get("/", response_model=PaginatedResponse[MetereologiaSchema])
+@router.get("/", response_model=PaginatedResponse[MeteorologiaSchema])
 def get_clima(codigo_ibge: Optional[str] = None, data_inicio: Optional[date] = None, data_fim: Optional[date] = None, page: int = 1, page_size: int = 20):
     sql = """
         SELECT 

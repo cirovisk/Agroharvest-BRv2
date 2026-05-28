@@ -126,3 +126,19 @@ class BaseSource(ABC):
             return True
         file_age_days = (time.time() - os.path.getmtime(path)) / (24 * 3600)
         return file_age_days > threshold_days
+
+    def _archive_file(self, local_path: str, data_dir: str):
+        """
+        Move um arquivo local antigo para uma subpasta de archive com timestamp.
+        """
+        if os.path.exists(local_path):
+            import shutil
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            archive_dir = os.path.join(data_dir, "archive")
+            os.makedirs(archive_dir, exist_ok=True)
+            filename = os.path.basename(local_path)
+            name, ext = os.path.splitext(filename)
+            archive_path = os.path.join(archive_dir, f"{name}__{timestamp}{ext}")
+            shutil.move(local_path, archive_path)
+            self.log.info(f"Arquivo antigo arquivado: {os.path.basename(archive_path)}")
