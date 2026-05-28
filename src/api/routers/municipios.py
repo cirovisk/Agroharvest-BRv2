@@ -1,11 +1,13 @@
-from fastapi import APIRouter, HTTPException
 from typing import Optional
 
-from db.duck_manager import duck_db
+from fastapi import APIRouter, HTTPException
+
 from api.schemas import MunicipioBaseSchema, PaginatedResponse
 from api.utils import paginate_query
+from db.duck_manager import duck_db
 
 router = APIRouter(prefix="/municipios", tags=["Municípios"])
+
 
 @router.get("/", response_model=PaginatedResponse[MunicipioBaseSchema])
 def list_municipios(uf: Optional[str] = None, page: int = 1, page_size: int = 20):
@@ -14,14 +16,15 @@ def list_municipios(uf: Optional[str] = None, page: int = 1, page_size: int = 20
     if uf:
         sql += " AND uf = ?"
         params.append(uf.upper().strip())
-        
+
     return paginate_query(sql, page, page_size, params)
+
 
 @router.get("/{codigo_ibge}", response_model=MunicipioBaseSchema)
 def get_municipio(codigo_ibge: str):
     sql = "SELECT id_municipio, codigo_ibge, nome, uf FROM dim_municipio WHERE codigo_ibge = ?"
     df = duck_db.execute_query(sql, (codigo_ibge.strip(),))
-    
+
     if df.empty:
         raise HTTPException(status_code=404, detail="Município não encontrado")
     return df.to_dict(orient="records")[0]

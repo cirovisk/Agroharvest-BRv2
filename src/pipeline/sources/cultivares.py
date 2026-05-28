@@ -1,37 +1,38 @@
 """Pipeline Cultivares: Registro Nacional de Cultivares (MAPA/SNPC)."""
 
-import re
-import numpy as np
 import logging
-import pandas as pd
-from pipeline.schemas import CultivaresSchema
+import re
 from pathlib import Path
 
-from pipeline.registry import register
+import numpy as np
+import pandas as pd
+
 from pipeline.base import BaseSource
-from pipeline.utils import normalize_string, get_cultura_id
 from pipeline.dimensions import preencher_dimensao_mantenedor
+from pipeline.registry import register
+from pipeline.schemas import CultivaresSchema
+from pipeline.utils import get_cultura_id, normalize_string
 
 log = logging.getLogger(__name__)
 
 # Constantes de limpeza (correção de acentos em nomes de espécies)
 ACCENT_CORRECTIONS = {
-    "Alocasia":   "Alocásia",
-    "Amarilis":   "Amarílis",
-    "Aralia":     "Arália",
-    "Bicuiba":    "Bicuíba",
-    "Bromelia":   "Bromélia",
-    "Cainga":     "Caingá",
-    "Catuaba":    "Catuába",
-    "Croton":     "Cróton",
-    "Euforbia":   "Eufórbia",
-    "Gipsofila":  "Gipsófila",
-    "Guaraiuva":  "Guaraiúva",
-    "Magnolia":   "Magnólia",
-    "Orquidea":   "Orquídea",
-    "OrquÍdea":   "Orquídea",
-    "Peperomia":  "Peperômia",
-    "Pera":       "Pêra",
+    "Alocasia": "Alocásia",
+    "Amarilis": "Amarílis",
+    "Aralia": "Arália",
+    "Bicuiba": "Bicuíba",
+    "Bromelia": "Bromélia",
+    "Cainga": "Caingá",
+    "Catuaba": "Catuába",
+    "Croton": "Cróton",
+    "Euforbia": "Eufórbia",
+    "Gipsofila": "Gipsófila",
+    "Guaraiuva": "Guaraiúva",
+    "Magnolia": "Magnólia",
+    "Orquidea": "Orquídea",
+    "OrquÍdea": "Orquídea",
+    "Peperomia": "Peperômia",
+    "Pera": "Pêra",
 }
 
 # Regexes de limpeza
@@ -48,10 +49,10 @@ class CultivaresPipeline(BaseSource):
 
     schema = CultivaresSchema
 
-    SNPC_URL   = "https://sistemas.agricultura.gov.br/snpc/cultivarweb/cultivares_registradas.php"
+    SNPC_URL = "https://sistemas.agricultura.gov.br/snpc/cultivarweb/cultivares_registradas.php"
     SNPC_QUERY = {"acao": "pesquisar", "postado": "1"}
-    SNPC_DATA  = {"exportar": "csv"}
-    HEADERS    = {
+    SNPC_DATA = {"exportar": "csv"}
+    HEADERS = {
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36",
         "Referer": "https://sistemas.agricultura.gov.br/snpc/cultivarweb/cultivares_registradas.php?acao=pesquisar&postado=1",
         "Accept": "text/csv,text/html,*/*;q=0.9",
@@ -119,7 +120,14 @@ class CultivaresPipeline(BaseSource):
             tmp = tmp.str.replace(_RE_BACKSLASH, "'", regex=True)
             return tmp.str.strip().replace("", np.nan)
 
-        colunas_texto = ["CULTIVAR", "NOME COMUM", "NOME CIENTÍFICO", "GRUPO DA ESPÉCIE", "SITUAÇÃO", "MANTENEDOR (REQUERENTE) (NOME)"]
+        colunas_texto = [
+            "CULTIVAR",
+            "NOME COMUM",
+            "NOME CIENTÍFICO",
+            "GRUPO DA ESPÉCIE",
+            "SITUAÇÃO",
+            "MANTENEDOR (REQUERENTE) (NOME)",
+        ]
         for col in colunas_texto:
             if col in df_clean.columns:
                 df_clean[col] = _limpar_texto(df_clean[col])
@@ -134,15 +142,11 @@ class CultivaresPipeline(BaseSource):
         if "CULTIVAR" in df_clean.columns:
             split_c = df_clean["CULTIVAR"].str.split("/", n=1, expand=True)
             df_clean["CULTIVAR"] = (
-                split_c[0].str.strip()
-                .str.replace(_RE_ASPAS_ENVOLVENDO, r"\1", regex=True)
-                .str.strip()
+                split_c[0].str.strip().str.replace(_RE_ASPAS_ENVOLVENDO, r"\1", regex=True).str.strip()
             )
             if split_c.shape[1] > 1:
                 df_clean["NOME SECUNDÁRIO"] = (
-                    split_c[1].str.strip()
-                    .str.replace(_RE_ASPAS_ENVOLVENDO, r"\1", regex=True)
-                    .str.strip()
+                    split_c[1].str.strip().str.replace(_RE_ASPAS_ENVOLVENDO, r"\1", regex=True).str.strip()
                 )
                 df_clean["NOME SECUNDÁRIO"] = df_clean["NOME SECUNDÁRIO"].replace("", np.nan)
                 n_sec = df_clean["NOME SECUNDÁRIO"].notna().sum()
@@ -171,11 +175,15 @@ class CultivaresPipeline(BaseSource):
         # Enriquecimento: Classificação de mantenedor (Público/Privado)
         if "MANTENEDOR (REQUERENTE) (NOME)" in df_clean.columns:
             _PUBL = ["EMBRAPA", "UNIVERSIDADE", "INSTITUTO", "EPAGRI", "PESAGRO", "IAPAR", "SECRETARIA", "FACULDADE"]
+
             def cat_setor(x):
-                if pd.isna(x): return "Nulo"
+                if pd.isna(x):
+                    return "Nulo"
                 x_u = x.upper()
-                if any(p in x_u for p in _PUBL): return "Público"
+                if any(p in x_u for p in _PUBL):
+                    return "Público"
                 return "Privado"
+
             df_clean["SETOR"] = df_clean["MANTENEDOR (REQUERENTE) (NOME)"].apply(cat_setor)
 
         renames = {
@@ -190,7 +198,7 @@ class CultivaresPipeline(BaseSource):
             "DATA DO REGISTRO": "data_reg",
             "DATA DE VALIDADE DO REGISTRO": "data_val",
             "MANTENEDOR (REQUERENTE) (NOME)": "mantenedor",
-            "CULTURA_NORMALIZADA": "cultura"
+            "CULTURA_NORMALIZADA": "cultura",
         }
 
         df_clean = df_clean.rename(columns=renames)
@@ -220,8 +228,22 @@ class CultivaresPipeline(BaseSource):
         df_f = df.copy()
         df_f["id_cultura"] = df_f["cultura"].apply(lambda x: get_cultura_id(x, lookups["culturas"]))
         df_f["id_mantenedor"] = df_f["mantenedor"].map(lookups.get("mantenedores", {}))
-        cols = ["nr_registro", "id_cultura", "id_mantenedor", "cultivar", "nome_secundario", "situacao", "nr_formulario", "data_reg", "data_val"]
-        df_f = df_f[[c for c in cols if c in df_f.columns]].drop_duplicates(subset=["nr_registro"]).dropna(subset=["cultivar", "id_cultura"])
+        cols = [
+            "nr_registro",
+            "id_cultura",
+            "id_mantenedor",
+            "cultivar",
+            "nome_secundario",
+            "situacao",
+            "nr_formulario",
+            "data_reg",
+            "data_val",
+        ]
+        df_f = (
+            df_f[[c for c in cols if c in df_f.columns]]
+            .drop_duplicates(subset=["nr_registro"])
+            .dropna(subset=["cultivar", "id_cultura"])
+        )
         path = self.save_parquet(df_f, "fato_registro_cultivares")
         result = f"{len(df_f)} registros salvos em {path}"
         self.log.info(f"Fato Cultivares Lakehouse: {result}.")

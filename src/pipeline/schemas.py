@@ -11,7 +11,7 @@ Uso:
 """
 
 import pandera as pa
-from pandera import Column, Check, DataFrameSchema
+from pandera import Check, Column, DataFrameSchema
 
 # ---------------------------------------------------------------------------
 # CONAB

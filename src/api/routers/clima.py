@@ -1,14 +1,26 @@
-from fastapi import APIRouter
 from datetime import date
 from typing import Optional
+
+from fastapi import APIRouter
 
 from api.schemas import MeteorologiaSchema, PaginatedResponse
 from api.utils import paginate_query
 
 router = APIRouter(prefix="/clima", tags=["Clima"])
 
+
 @router.get("/", response_model=PaginatedResponse[MeteorologiaSchema])
-def get_clima(codigo_ibge: Optional[str] = None, data_inicio: Optional[date] = None, data_fim: Optional[date] = None, page: int = 1, page_size: int = 20):
+def get_clima(
+    codigo_ibge: Optional[str] = None,
+    data_inicio: Optional[date] = None,
+    data_fim: Optional[date] = None,
+    page: int = 1,
+    page_size: int = 20,
+) -> PaginatedResponse:
+    """
+    Obtém dados meteorológicos diários de municípios (via Open-Meteo) a partir de views Parquet paginadas.
+    Permite filtros opcionais por código IBGE do município, data de início e data de fim.
+    """
     sql = """
         SELECT 
             f.id_meteo,
@@ -22,16 +34,16 @@ def get_clima(codigo_ibge: Optional[str] = None, data_inicio: Optional[date] = N
         JOIN dim_municipio m ON f.id_municipio = m.id_municipio
         WHERE 1=1
     """
-    
+
     params = []
     if codigo_ibge:
         sql += " AND m.codigo_ibge = ?"
         params.append(codigo_ibge.strip())
     if data_inicio:
         sql += " AND f.data >= ?"
-        params.append(data_inicio.strftime('%Y-%m-%d'))
+        params.append(data_inicio.strftime("%Y-%m-%d"))
     if data_fim:
         sql += " AND f.data <= ?"
-        params.append(data_fim.strftime('%Y-%m-%d'))
-        
+        params.append(data_fim.strftime("%Y-%m-%d"))
+
     return paginate_query(sql, page, page_size, params)

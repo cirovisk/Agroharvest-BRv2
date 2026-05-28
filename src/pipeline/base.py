@@ -7,15 +7,16 @@ Funcionalidades herdadas:
   - self.validate(): Validação de schema Pandera após o clean()
   - self.save_parquet(): Helper para salvar DataFrames em Parquet
 """
+
+import logging
 import os
 import time
-import logging
 from abc import ABC, abstractmethod
 
 import pandera as pa
 
-from pipeline.parquet_utils import save_as_parquet
 from pipeline.http_client import ResilientHTTPClient
+from pipeline.parquet_utils import save_as_parquet
 
 
 class BaseSource(ABC):
@@ -85,10 +86,7 @@ class BaseSource(ABC):
 
         try:
             validated = effective_schema.validate(df, lazy=True)
-            self.log.info(
-                f"✓ Schema '{effective_schema.name or 'unnamed'}' validado: "
-                f"{len(df)} linha(s) OK."
-            )
+            self.log.info(f"✓ Schema '{effective_schema.name or 'unnamed'}' validado: {len(df)} linha(s) OK.")
             return validated
         except pa.errors.SchemaErrors as e:
             self.log.error(
@@ -107,7 +105,7 @@ class BaseSource(ABC):
         if isinstance(clean, dict):
             # Sources com múltiplos DataFrames (CONAB, SIGEF)
             for key, df in clean.items():
-                if hasattr(self, '_get_schema_for_key'):
+                if hasattr(self, "_get_schema_for_key"):
                     sub_schema = self._get_schema_for_key(key)
                     if sub_schema is not None:
                         clean[key] = self.validate(df, schema=sub_schema)
@@ -134,6 +132,7 @@ class BaseSource(ABC):
         if os.path.exists(local_path):
             import shutil
             from datetime import datetime
+
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             archive_dir = os.path.join(data_dir, "archive")
             os.makedirs(archive_dir, exist_ok=True)

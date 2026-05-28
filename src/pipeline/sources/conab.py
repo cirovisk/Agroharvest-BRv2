@@ -1,13 +1,14 @@
 """Pipeline CONAB: Produção e Preços agrícolas (CONAB)."""
 
-import os
 import logging
+import os
+
 import pandas as pd
 
-from pipeline.registry import register
 from pipeline.base import BaseSource
-from pipeline.schemas import ConabProducaoSchema, ConabPrecosSchema
-from pipeline.utils import normalize_string, get_cultura_id
+from pipeline.registry import register
+from pipeline.schemas import ConabPrecosSchema, ConabProducaoSchema
+from pipeline.utils import get_cultura_id, normalize_string
 
 log = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ class ConabPipeline(BaseSource):
         "precos_uf_mensal": "PrecosMensalUF.txt",
         "precos_mun_mensal": "PrecosMensalMunicipio.txt",
         "precos_uf_semanal": "PrecosSemanalUF.txt",
-        "precos_mun_semanal": "PrecosSemanalMunicipio.txt"
+        "precos_mun_semanal": "PrecosSemanalMunicipio.txt",
     }
 
     def __init__(self, data_dir="data/conab", force_refresh=False):
@@ -51,20 +52,18 @@ class ConabPipeline(BaseSource):
             is_stale = self.is_file_stale(local_path, threshold_days=(7 if "semanal" in key else 30))
 
             if self.force_refresh or not os.path.exists(local_path) or is_stale:
-                reason = "forçado" if self.force_refresh else ("ausente" if not os.path.exists(local_path) else "desatualizado")
+                reason = (
+                    "forçado"
+                    if self.force_refresh
+                    else ("ausente" if not os.path.exists(local_path) else "desatualizado")
+                )
                 self.log.info(f"Atualizando {filename} ({reason})...")
                 self._download_file(filename, local_path)
 
             if os.path.exists(local_path):
                 self.log.info(f"Carregando {filename} para memória...")
                 try:
-                    df = pd.read_csv(
-                        local_path,
-                        sep=";",
-                        encoding="latin1",
-                        dtype=str,
-                        skipinitialspace=True
-                    )
+                    df = pd.read_csv(local_path, sep=";", encoding="latin1", dtype=str, skipinitialspace=True)
                     dataframes[key] = df
                 except Exception as e:
                     self.log.error(f"Erro ao ler {filename}: {e}")
@@ -88,9 +87,9 @@ class ConabPipeline(BaseSource):
             self.log.error(f"Erro no download de {url}: {e}")
 
     def _get_schema_for_key(self, key):
-        if 'producao' in key:
+        if "producao" in key:
             return ConabProducaoSchema
-        if 'precos' in key:
+        if "precos" in key:
             return ConabPrecosSchema
         return None
 
@@ -124,7 +123,7 @@ class ConabPipeline(BaseSource):
             "produto": "produto_raw",
             "area_plantada_mil_ha": "area_plantada_mil_ha",
             "producao_mil_t": "producao_mil_t",
-            "produtividade_mil_ha_mil_t": "produtividade_t_ha"
+            "produtividade_mil_ha_mil_t": "produtividade_t_ha",
         }
         df = df.rename(columns=renames)
         cols_num = ["area_plantada_mil_ha", "producao_mil_t", "produtividade_t_ha"]
@@ -132,7 +131,15 @@ class ConabPipeline(BaseSource):
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
         df["cultura"] = normalize_string(df["produto_raw"])
-        cols_final = ["ano_agricola", "safra", "uf", "cultura", "area_plantada_mil_ha", "producao_mil_t", "produtividade_t_ha"]
+        cols_final = [
+            "ano_agricola",
+            "safra",
+            "uf",
+            "cultura",
+            "area_plantada_mil_ha",
+            "producao_mil_t",
+            "produtividade_t_ha",
+        ]
         available_cols = [c for c in cols_final if c in df.columns]
         return df[available_cols]
 
@@ -149,7 +156,7 @@ class ConabPipeline(BaseSource):
             "valor_produto_kg": "valor_kg",
             "dsc_nivel_comercializacao": "nivel_comercializacao",
             "semana": "semana",
-            "data_inicial_final_semana": "data_referencia"
+            "data_inicial_final_semana": "data_referencia",
         }
         df = df.rename(columns=renames)
 

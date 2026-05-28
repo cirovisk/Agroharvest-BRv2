@@ -1,8 +1,10 @@
-import os
-import pandas as pd
 import logging
+import os
+
+import pandas as pd
 
 log = logging.getLogger(__name__)
+
 
 def save_as_parquet(df: pd.DataFrame, table_name: str, base_path: str = "data/storage", file_suffix: str = ""):
     """
@@ -23,7 +25,7 @@ def save_as_parquet(df: pd.DataFrame, table_name: str, base_path: str = "data/st
 
     try:
         # Salvando com Brotli (exige pyarrow ou fastparquet)
-        df.to_parquet(file_path, compression='brotli', index=False)
+        df.to_parquet(file_path, compression="brotli", index=False)
         log.info(f"Dados salvos com sucesso: {file_path} ({len(df)} linhas)")
         return file_path
     except Exception as e:

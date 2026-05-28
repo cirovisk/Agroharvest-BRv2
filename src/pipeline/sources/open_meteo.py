@@ -4,17 +4,19 @@ Substitui INMET devido a instabilidades.
 """
 
 import io
-import os
 import logging
-import pandas as pd
-from datetime import datetime, timedelta
+import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timedelta
 
-from pipeline.registry import register
+import pandas as pd
+
 from pipeline.base import BaseSource
+from pipeline.registry import register
 from pipeline.schemas import OpenMeteoSchema
 
 log = logging.getLogger(__name__)
+
 
 @register("open_meteo")
 class OpenMeteoPipeline(BaseSource):
@@ -41,20 +43,17 @@ class OpenMeteoPipeline(BaseSource):
         coords_df = self.get_municipios_coords()
         if coords_df.empty:
             return "0 registros (sem coordenadas)"
-        
+
         # 2. Obter municípios do banco via DuckDB
         muns_df = db.execute("SELECT id_municipio, codigo_ibge FROM dim_municipio").df()
-        
+
         mun_coords = {}
         for _, m in muns_df.iterrows():
             # Codigo IBGE no CSV geralmente é os 7 digitos
             match = coords_df[coords_df["codigo_ibge"].astype(str) == str(m["codigo_ibge"])]
             if not match.empty:
-                mun_coords[m["id_municipio"]] = {
-                    "lat": match.iloc[0]["latitude"],
-                    "lon": match.iloc[0]["longitude"]
-                }
-        
+                mun_coords[m["id_municipio"]] = {"lat": match.iloc[0]["latitude"], "lon": match.iloc[0]["longitude"]}
+
         if not mun_coords:
             return "0 registros (nenhum município com coordenadas)"
 
@@ -100,9 +99,9 @@ class OpenMeteoPipeline(BaseSource):
         if not mun_coords:
             return {}
 
-        end_date = datetime.now() - timedelta(days=2) # API archive tem ~2 dias de lag
+        end_date = datetime.now() - timedelta(days=2)  # API archive tem ~2 dias de lag
         start_date = end_date - timedelta(days=self.days_history)
-        
+
         s_str = start_date.strftime("%Y-%m-%d")
         e_str = end_date.strftime("%Y-%m-%d")
 
@@ -147,14 +146,16 @@ class OpenMeteoPipeline(BaseSource):
                 continue
 
             df = df.copy()
-            df = df.rename(columns={
-                "time": "data",
-                "precipitation_sum": "precipitacao_total_mm",
-                "temperature_2m_max": "temp_max_c",
-                "temperature_2m_min": "temp_min_c",
-                "temperature_2m_mean": "temp_media_c"
-            })
-            
+            df = df.rename(
+                columns={
+                    "time": "data",
+                    "precipitation_sum": "precipitacao_total_mm",
+                    "temperature_2m_max": "temp_max_c",
+                    "temperature_2m_min": "temp_min_c",
+                    "temperature_2m_mean": "temp_media_c",
+                }
+            )
+
             df["umidade_media"] = None
             df["estacao_id"] = "OPEN-METEO"
             df["id_municipio"] = mid
@@ -175,7 +176,7 @@ class OpenMeteoPipeline(BaseSource):
         # Agora salvamos em Parquet (Lakehouse Style)
         table_name = "fato_meteorologia"
         path = self.save_parquet(df, table_name)
-        
+
         result = f"{len(df)} registros salvos em {path}"
         self.log.info(f"Open-Meteo Lakehouse: {result}.")
         return result

@@ -1,15 +1,16 @@
 """Pipeline SIDRA/PAM: Produção Agrícola Municipal (IBGE)."""
 
-import os
 import logging
-import numpy as np
-import pandas as pd
-from pipeline.schemas import SidraSchema
+import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from pipeline.registry import register
+import numpy as np
+import pandas as pd
+
 from pipeline.base import BaseSource
-from pipeline.utils import normalize_string, get_cultura_id
+from pipeline.registry import register
+from pipeline.schemas import SidraSchema
+from pipeline.utils import get_cultura_id, normalize_string
 
 log = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ class SidraPipeline(BaseSource):
     schema = SidraSchema
 
     from config import CULTURAS_IBGE_IDS
+
     TARGET_CROPS = CULTURAS_IBGE_IDS
 
     def __init__(self, ano: str = "2021", data_dir: str = "data/sidra", use_cache: bool = True):
@@ -134,7 +136,7 @@ class SidraPipeline(BaseSource):
             "D1C": "cod_municipio_ibge",
             "D1N": "municipio_nome",
             "D3N": "ano",
-            "cultura_raw": "cultura"
+            "cultura_raw": "cultura",
         }
 
         ausentes = [k for k in col_map if k not in df.columns]
@@ -145,16 +147,16 @@ class SidraPipeline(BaseSource):
         df_clean = df_clean[[c for c in col_map.values() if c in df_clean.columns]].copy()
 
         nulos_antes = df_clean["valor"].isna().sum()
-        df_clean["valor"] = pd.to_numeric(df_clean["valor"].replace(['...', '-'], np.nan), errors='coerce')
+        df_clean["valor"] = pd.to_numeric(df_clean["valor"].replace(["...", "-"], np.nan), errors="coerce")
         nulos_depois = df_clean["valor"].isna().sum()
         if nulos_depois > nulos_antes:
-            self.log.info(f"PAM/SIDRA: {nulos_depois - nulos_antes} valor(es) não numérico(s) do IBGE ('...', '-') convertido(s) para NaN.")
+            self.log.info(
+                f"PAM/SIDRA: {nulos_depois - nulos_antes} valor(es) não numérico(s) do IBGE ('...', '-') convertido(s) para NaN."
+            )
 
         # Transformação: Pivoteamento de variáveis para colunas fato
         df_pivot = df_clean.pivot_table(
-            index=["cod_municipio_ibge", "municipio_nome", "ano", "cultura"],
-            columns="variavel",
-            values="valor"
+            index=["cod_municipio_ibge", "municipio_nome", "ano", "cultura"], columns="variavel", values="valor"
         ).reset_index()
         self.log.info(f"PAM/SIDRA pivot: {len(df_pivot)} combinação(ões) (município × cultura × ano).")
 
@@ -164,7 +166,7 @@ class SidraPipeline(BaseSource):
             "Área plantada": "area_plantada_ha",
             "Área colhida": "area_colhida_ha",
             "Quantidade produzida": "qtde_produzida_ton",
-            "Valor da produção": "valor_producao_mil_reais"
+            "Valor da produção": "valor_producao_mil_reais",
         }
 
         actual_renames = {}
@@ -196,7 +198,15 @@ class SidraPipeline(BaseSource):
         df_f["id_cultura"] = df_f["cultura"].apply(lambda x: get_cultura_id(x, lookups["culturas"]))
         df_f["cod_municipio_ibge"] = df_f["cod_municipio_ibge"].astype(str).str[:7]
         df_f["id_municipio"] = df_f["cod_municipio_ibge"].map(lookups["municipios_ibge"])
-        cols = ["id_cultura", "id_municipio", "ano", "area_plantada_ha", "area_colhida_ha", "qtde_produzida_ton", "valor_producao_mil_reais"]
+        cols = [
+            "id_cultura",
+            "id_municipio",
+            "ano",
+            "area_plantada_ha",
+            "area_colhida_ha",
+            "qtde_produzida_ton",
+            "valor_producao_mil_reais",
+        ]
         df_f = df_f[cols].dropna(subset=["id_cultura", "id_municipio"])
         path = self.save_parquet(df_f, "fato_producao_pam")
         result = f"{len(df_f)} registros salvos em {path}"

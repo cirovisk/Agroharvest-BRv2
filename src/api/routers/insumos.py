@@ -1,10 +1,12 @@
-from fastapi import APIRouter
 from typing import Optional
+
+from fastapi import APIRouter
 
 from api.schemas import AgrofitSchema, FertilizanteSchema, PaginatedResponse
 from api.utils import paginate_query
 
 router = APIRouter(prefix="/insumos", tags=["Insumos"])
+
 
 @router.get("/agrofit", response_model=PaginatedResponse[AgrofitSchema])
 def get_agrofit(cultura: Optional[str] = None, classe: Optional[str] = None, page: int = 1, page_size: int = 20):
@@ -29,6 +31,7 @@ def get_agrofit(cultura: Optional[str] = None, classe: Optional[str] = None, pag
         params.append(classe.upper().strip())
 
     return paginate_query(sql, page, page_size, params)
+
 
 @router.get("/fertilizantes", response_model=PaginatedResponse[FertilizanteSchema])
 def get_fertilizantes(uf: Optional[str] = None, atividade: Optional[str] = None, page: int = 1, page_size: int = 20):

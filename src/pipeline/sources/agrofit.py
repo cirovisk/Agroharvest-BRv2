@@ -1,13 +1,14 @@
 """Pipeline Agrofit: Produtos Formulados / Agrotóxicos (MAPA)."""
 
 import logging
-import pandas as pd
 from pathlib import Path
 
-from pipeline.registry import register
+import pandas as pd
+
 from pipeline.base import BaseSource
+from pipeline.registry import register
 from pipeline.schemas import AgrofitSchema
-from pipeline.utils import normalize_string, get_cultura_id
+from pipeline.utils import get_cultura_id, normalize_string
 
 log = logging.getLogger(__name__)
 
@@ -55,14 +56,7 @@ class AgrofitPipeline(BaseSource):
             return pd.DataFrame()
 
     def _read_csv(self) -> pd.DataFrame:
-        return pd.read_csv(
-            self.cache_path,
-            sep=";",
-            encoding="utf-8",
-            dtype=str,
-            on_bad_lines='skip',
-            low_memory=False
-        )
+        return pd.read_csv(self.cache_path, sep=";", encoding="utf-8", dtype=str, on_bad_lines="skip", low_memory=False)
 
     # ---- CLEAN ----
 
@@ -81,7 +75,7 @@ class AgrofitPipeline(BaseSource):
             "CLASSE": "classe",
             "SITUACAO": "situacao",
             "CULTURA": "cultura_raw",
-            "PRAGA_NOME_COMUM": "praga_comum"
+            "PRAGA_NOME_COMUM": "praga_comum",
         }
 
         df = df.rename(columns=renames)
@@ -110,7 +104,6 @@ class AgrofitPipeline(BaseSource):
         df_f = df.copy()
         df_f["id_cultura"] = df_f["cultura"].apply(lambda x: get_cultura_id(x, lookups["culturas"]))
         df_f = df_f.dropna(subset=["id_cultura"])
-        index = ['id_cultura', 'nr_registro', 'marca_comercial', 'praga_comum']
         path = self.save_parquet(df_f, "fato_agrofit")
         result = f"{len(df_f)} registros salvos em {path}"
         self.log.info(f"Fato Agrofit Lakehouse: {result}.")

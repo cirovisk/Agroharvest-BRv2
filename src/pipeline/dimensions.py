@@ -4,8 +4,9 @@ Responsável por popular dim_cultura, dim_municipio e dim_mantenedor.
 """
 
 import logging
-import requests
+
 import pandas as pd
+import requests
 
 log = logging.getLogger(__name__)
 
@@ -38,13 +39,13 @@ def init_dimensions(conn):
 
 def preencher_dimensao_cultura(conn, culturas_lista):
     init_dimensions(conn)
-    df_insert = pd.DataFrame({"nome_padronizado": [c.strip().lower() for c in culturas_lista]})
-    
+    df_insert = pd.DataFrame({"nome_padronizado": [c.strip().lower() for c in culturas_lista]})  # noqa: F841
+
     try:
         conn.execute("INSERT OR IGNORE INTO dim_cultura (nome_padronizado) SELECT nome_padronizado FROM df_insert")
     except Exception as e:
         log.error(f"Erro ao inserir culturas: {e}")
-        
+
     df = conn.execute("SELECT nome_padronizado, id_cultura FROM dim_cultura").df()
     return df.set_index("nome_padronizado")["id_cultura"].to_dict()
 
@@ -58,10 +59,10 @@ def preencher_dimensao_mantenedor(conn, df_cult):
     col_setor = "SETOR" if "SETOR" in df_cult.columns else "setor" if "setor" in df_cult.columns else None
     cols = ["mantenedor"] + ([col_setor] if col_setor else [])
     unique_mants = df_cult[cols].drop_duplicates().dropna(subset=["mantenedor"])
-    
+
     if unique_mants.empty:
         return mant_map
-        
+
     try:
         if col_setor:
             unique_mants = unique_mants.rename(columns={"mantenedor": "nome", col_setor: "setor"})
@@ -71,7 +72,7 @@ def preencher_dimensao_mantenedor(conn, df_cult):
             conn.execute("INSERT OR IGNORE INTO dim_mantenedor (nome) SELECT nome FROM unique_mants")
     except Exception as e:
         log.error(f"Erro ao inserir mantenedores: {e}")
-        
+
     df = conn.execute("SELECT nome, id_mantenedor FROM dim_mantenedor").df()
     return df.set_index("nome")["id_mantenedor"].to_dict()
 
@@ -92,7 +93,7 @@ def carregar_municipios_completo_ibge(conn):
     for m in muns_data:
         cod = str(m["id"])
         nome = m["nome"]
-        
+
         uf = None
         try:
             uf = m.get("microrregiao", {}).get("mesorregiao", {}).get("UF", {}).get("sigla")
@@ -100,53 +101,65 @@ def carregar_municipios_completo_ibge(conn):
                 uf = m.get("regiao-imediata", {}).get("regiao-intermediaria", {}).get("UF", {}).get("sigla")
         except Exception:
             uf = "XX"
-            
+
         uf = str(uf).upper() if uf else "XX"
         records.append({"codigo_ibge": cod, "nome": nome, "uf": uf})
-    
+
     df_muns = pd.DataFrame(records)
     if not df_muns.empty:
         try:
-            conn.execute("INSERT OR IGNORE INTO dim_municipio (codigo_ibge, nome, uf) SELECT codigo_ibge, nome, uf FROM df_muns")
-            log.info(f"DimMunicipio: Municipios validados com sucesso no DuckDB.")
+            conn.execute(
+                "INSERT OR IGNORE INTO dim_municipio (codigo_ibge, nome, uf) SELECT codigo_ibge, nome, uf FROM df_muns"
+            )
+            log.info("DimMunicipio: Municipios validados com sucesso no DuckDB.")
         except Exception as e:
             log.error(f"Erro ao inserir municipios do IBGE: {e}")
-            
+
     return preencher_dimensao_municipio(conn)
 
 
 def preencher_dimensao_municipio(conn, df_pam=pd.DataFrame(), df_zarc=pd.DataFrame()):
     init_dimensions(conn)
-    
+
     # Para simplicidade e performance, vamos focar em carregar do IBGE.
     # O DuckDB vai ignorar duplicados pelo `UNIQUE` do codigo_ibge.
     if not df_pam.empty and "cod_municipio_ibge" in df_pam.columns:
-        pam_muns = df_pam[["cod_municipio_ibge", "municipio_nome", "uf"]].drop_duplicates().dropna(subset=["cod_municipio_ibge"])
+        pam_muns = (
+            df_pam[["cod_municipio_ibge", "municipio_nome", "uf"]]
+            .drop_duplicates()
+            .dropna(subset=["cod_municipio_ibge"])
+        )
         pam_muns["cod_municipio_ibge"] = pam_muns["cod_municipio_ibge"].astype(str).str[:7]
         pam_muns = pam_muns.rename(columns={"cod_municipio_ibge": "codigo_ibge", "municipio_nome": "nome"})
         try:
-            conn.execute("INSERT OR IGNORE INTO dim_municipio (codigo_ibge, nome, uf) SELECT codigo_ibge, nome, uf FROM pam_muns")
+            conn.execute(
+                "INSERT OR IGNORE INTO dim_municipio (codigo_ibge, nome, uf) SELECT codigo_ibge, nome, uf FROM pam_muns"
+            )
         except Exception as e:
             log.warning(f"Falha ao inserir municipios do PAM no DuckDB: {e}")
-            
+
     if not df_zarc.empty and "cod_municipio_ibge" in df_zarc.columns:
-        zarc_muns = df_zarc[["cod_municipio_ibge", "municipio", "uf"]].drop_duplicates().dropna(subset=["cod_municipio_ibge"])
+        zarc_muns = (
+            df_zarc[["cod_municipio_ibge", "municipio", "uf"]].drop_duplicates().dropna(subset=["cod_municipio_ibge"])
+        )
         zarc_muns["cod_municipio_ibge"] = zarc_muns["cod_municipio_ibge"].astype(str).str[:7]
         zarc_muns = zarc_muns.rename(columns={"cod_municipio_ibge": "codigo_ibge", "municipio": "nome"})
         try:
-            conn.execute("INSERT OR IGNORE INTO dim_municipio (codigo_ibge, nome, uf) SELECT codigo_ibge, nome, uf FROM zarc_muns")
+            conn.execute(
+                "INSERT OR IGNORE INTO dim_municipio (codigo_ibge, nome, uf) SELECT codigo_ibge, nome, uf FROM zarc_muns"
+            )
         except Exception as e:
             log.warning(f"Falha ao inserir municipios do ZARC no DuckDB: {e}")
 
     # Fetch results
     df = conn.execute("SELECT id_municipio, codigo_ibge, nome, uf FROM dim_municipio").df()
-    
+
     mun_map_ibge = df.set_index("codigo_ibge")["id_municipio"].to_dict()
-    
+
     # Criar o map_nome: (nome.lower(), uf) -> id
     mun_map_name = {}
     for _, row in df.iterrows():
         if pd.notna(row["uf"]) and pd.notna(row["nome"]):
             mun_map_name[(str(row["nome"]).lower().strip(), str(row["uf"]).strip().upper())] = row["id_municipio"]
-            
+
     return mun_map_ibge, mun_map_name

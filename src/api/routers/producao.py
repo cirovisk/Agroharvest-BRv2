@@ -1,13 +1,25 @@
-from fastapi import APIRouter
 from typing import Optional
 
-from api.schemas import ProducaoPAMSchema, ProducaoConabSchema, SigefProducaoSchema, PaginatedResponse
+from fastapi import APIRouter
+
+from api.schemas import PaginatedResponse, ProducaoConabSchema, ProducaoPAMSchema, SigefProducaoSchema
 from api.utils import paginate_query
 
 router = APIRouter(prefix="/producao", tags=["Produção"])
 
+
 @router.get("/pam", response_model=PaginatedResponse[ProducaoPAMSchema])
-def get_pam(cultura: Optional[str] = None, uf: Optional[str] = None, ano: Optional[int] = None, page: int = 1, page_size: int = 20):
+def get_pam(
+    cultura: Optional[str] = None,
+    uf: Optional[str] = None,
+    ano: Optional[int] = None,
+    page: int = 1,
+    page_size: int = 20,
+) -> PaginatedResponse:
+    """
+    Obtém dados de produção agrícola municipal (PAM) do IBGE a partir de views Parquet paginadas.
+    Permite filtros opcionais por cultura, unidade federativa (UF) e ano.
+    """
     sql = """
         SELECT 
             p.id_producao,
@@ -37,8 +49,19 @@ def get_pam(cultura: Optional[str] = None, uf: Optional[str] = None, ano: Option
 
     return paginate_query(sql, page, page_size, params)
 
+
 @router.get("/conab", response_model=PaginatedResponse[ProducaoConabSchema])
-def get_conab(cultura: Optional[str] = None, uf: Optional[str] = None, ano_agricola: Optional[str] = None, page: int = 1, page_size: int = 20):
+def get_conab(
+    cultura: Optional[str] = None,
+    uf: Optional[str] = None,
+    ano_agricola: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 20,
+) -> PaginatedResponse:
+    """
+    Obtém as estimativas de safra da CONAB a partir de views Parquet paginadas.
+    Permite filtros opcionais por cultura, unidade federativa (UF) e ano agrícola (ex: '2023/24').
+    """
     sql = """
         SELECT 
             p.id_conab,
@@ -66,8 +89,19 @@ def get_conab(cultura: Optional[str] = None, uf: Optional[str] = None, ano_agric
 
     return paginate_query(sql, page, page_size, params)
 
+
 @router.get("/sigef", response_model=PaginatedResponse[SigefProducaoSchema])
-def get_sigef(cultura: Optional[str] = None, uf: Optional[str] = None, safra: Optional[str] = None, page: int = 1, page_size: int = 20):
+def get_sigef(
+    cultura: Optional[str] = None,
+    uf: Optional[str] = None,
+    safra: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 20,
+) -> PaginatedResponse:
+    """
+    Obtém os dados do SIGEF de forma paginada a partir de views Parquet.
+    Permite filtros opcionais por cultura, unidade federativa (UF) e safra.
+    """
     sql = """
         SELECT 
             s.id_sigef_producao,

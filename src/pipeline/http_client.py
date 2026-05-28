@@ -11,8 +11,8 @@ Política de retries:
   - Fallback de SSL opcional (MAPA/SIPEAGRO frequentemente falha SSL)
 """
 
-import time
 import logging
+import time
 from typing import Any
 
 import requests
@@ -69,17 +69,20 @@ class ResilientHTTPClient:
 
     def _calc_delay(self, attempt: int) -> float:
         """Calcula o delay com backoff exponencial: base * factor^attempt."""
-        delay = self.backoff_base * (self.backoff_factor ** attempt)
+        delay = self.backoff_base * (self.backoff_factor**attempt)
         return min(delay, self.backoff_max)
 
     def _is_retryable(self, exc: Exception | None = None, status_code: int | None = None) -> bool:
         """Determina se o erro é transiente e merece retry."""
         if exc is not None:
-            return isinstance(exc, (
-                requests.exceptions.ConnectionError,
-                requests.exceptions.Timeout,
-                requests.exceptions.ChunkedEncodingError,
-            ))
+            return isinstance(
+                exc,
+                (
+                    requests.exceptions.ConnectionError,
+                    requests.exceptions.Timeout,
+                    requests.exceptions.ChunkedEncodingError,
+                ),
+            )
         if status_code is not None:
             return status_code in self.retryable_status_codes
         return False
@@ -139,20 +142,20 @@ class ResilientHTTPClient:
 
             except requests.exceptions.SSLError as ssl_err:
                 if self.ssl_fallback and verify:
-                    log.warning(
-                        f"SSL falhou para {url}: {ssl_err}. "
-                        "Retentando sem verificação SSL..."
-                    )
+                    log.warning(f"SSL falhou para {url}: {ssl_err}. Retentando sem verificação SSL...")
                     # Tenta uma vez sem SSL (não conta como retry normal)
                     import urllib3
+
                     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
                     return self.request(method, url, timeout=effective_timeout, verify=False, **kwargs)
                 last_exception = ssl_err
                 break  # SSL sem fallback não é retryável
 
-            except (requests.exceptions.ConnectionError,
-                    requests.exceptions.Timeout,
-                    requests.exceptions.ChunkedEncodingError) as e:
+            except (
+                requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout,
+                requests.exceptions.ChunkedEncodingError,
+            ) as e:
                 last_exception = e
                 if attempt < self.max_retries:
                     delay = self._calc_delay(attempt)
@@ -163,10 +166,7 @@ class ResilientHTTPClient:
                     )
                     time.sleep(delay)
                 else:
-                    log.error(
-                        f"Falha definitiva após {self.max_retries + 1} tentativa(s) "
-                        f"em {url}: {e}"
-                    )
+                    log.error(f"Falha definitiva após {self.max_retries + 1} tentativa(s) em {url}: {e}")
 
             except requests.exceptions.RequestException as e:
                 # Erros não-retryáveis (ex: InvalidURL)

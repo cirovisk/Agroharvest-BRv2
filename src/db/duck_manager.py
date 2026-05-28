@@ -1,15 +1,18 @@
-import duckdb
-import os
 import logging
+import os
+
+import duckdb
 import pandas as pd
 
 log = logging.getLogger(__name__)
+
 
 class DuckManager:
     """
     Gerenciador DuckDB para arquitetura Lakehouse.
     Mapeia arquivos Parquet em views SQL automaticamente e guarda dimensões.
     """
+
     def __init__(self, storage_path="data/storage", db_file="data/storage/cultivares.duckdb"):
         self.storage_path = storage_path
         os.makedirs(self.storage_path, exist_ok=True)
@@ -27,8 +30,9 @@ class DuckManager:
 
         # Lista subpastas que representam nossas "tabelas"
         tables = [d for d in os.listdir(self.storage_path) if os.path.isdir(os.path.join(self.storage_path, d))]
-        
+
         import re
+
         # Identificador SQL válido: deve começar com letra ou underscore e ter apenas alfanuméricos/underscores
         safe_sql_identifier = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 
@@ -39,9 +43,9 @@ class DuckManager:
 
             # Padrão para ler todos os parquets da pasta da tabela
             parquet_pattern = os.path.join(self.storage_path, table, "*.parquet")
-            
+
             # Verifica se há arquivos antes de criar a view
-            files = [f for f in os.listdir(os.path.join(self.storage_path, table)) if f.endswith('.parquet')]
+            files = [f for f in os.listdir(os.path.join(self.storage_path, table)) if f.endswith(".parquet")]
             if not files:
                 continue
 
@@ -59,6 +63,7 @@ class DuckManager:
         except Exception as e:
             log.error(f"Erro na query DuckDB: {e}")
             return pd.DataFrame()
+
 
 # Instância única (Singleton simplificado para o app)
 duck_db = DuckManager()

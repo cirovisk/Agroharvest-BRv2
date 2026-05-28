@@ -1,11 +1,12 @@
 """Pipeline Fertilizantes: Estabelecimentos SIPEAGRO (MAPA)."""
 
-import os
 import logging
+import os
+
 import pandas as pd
 
-from pipeline.registry import register
 from pipeline.base import BaseSource
+from pipeline.registry import register
 from pipeline.schemas import FertilizantesSchema
 from pipeline.utils import map_municipio_by_name
 
@@ -41,7 +42,9 @@ class FertilizantesPipeline(BaseSource):
         is_stale = self.is_file_stale(local_path, threshold_days=30)
 
         if self.force_refresh or not os.path.exists(local_path) or is_stale:
-            reason = "forçado" if self.force_refresh else ("ausente" if not os.path.exists(local_path) else "desatualizado")
+            reason = (
+                "forçado" if self.force_refresh else ("ausente" if not os.path.exists(local_path) else "desatualizado")
+            )
             self.log.info(f"Iniciando download do SIPEAGRO ({reason}): {self.DOWNLOAD_URL}")
             self._download_file(local_path)
         else:
@@ -49,13 +52,7 @@ class FertilizantesPipeline(BaseSource):
 
         if os.path.exists(local_path):
             try:
-                df = pd.read_csv(
-                    local_path,
-                    sep=";",
-                    encoding="latin1",
-                    dtype=str,
-                    skipinitialspace=True
-                )
+                df = pd.read_csv(local_path, sep=";", encoding="latin1", dtype=str, skipinitialspace=True)
                 self.log.info(f"SIPEAGRO carregado: {len(df)} linha(s), {len(df.columns)} coluna(s).")
                 return df
             except Exception as e:
@@ -101,7 +98,7 @@ class FertilizantesPipeline(BaseSource):
             "NOME_FANTASIA": "nome_fantasia",
             "AREA_ATUACAO": "area_atuacao",
             "ATIVIDADE": "atividade",
-            "CLASSIFICACAO": "classificacao"
+            "CLASSIFICACAO": "classificacao",
         }
 
         df = df.rename(columns=renames)
@@ -110,10 +107,11 @@ class FertilizantesPipeline(BaseSource):
         for col in str_cols:
             df[col] = df[col].str.strip()
 
-        sem_registro = df["nr_registro_estabelecimento"].isna().sum() if "nr_registro_estabelecimento" in df.columns else "N/A"
+        sem_registro = (
+            df["nr_registro_estabelecimento"].isna().sum() if "nr_registro_estabelecimento" in df.columns else "N/A"
+        )
         self.log.info(
-            f"Cleaner SIPEAGRO concluído: {len(df)} estabelecimento(s). "
-            f"Sem número de registro: {sem_registro}."
+            f"Cleaner SIPEAGRO concluído: {len(df)} estabelecimento(s). Sem número de registro: {sem_registro}."
         )
         return df
 

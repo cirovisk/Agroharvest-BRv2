@@ -1,17 +1,24 @@
-from fastapi import APIRouter, Query
 from typing import Optional
+
+from fastapi import APIRouter, Query
 
 from api.utils import paginate_query
 
 router = APIRouter(prefix="/zarc", tags=["ZARC - Zoneamento Agrícola"])
 
+
 @router.get("/indicacoes/stats")
 def zarc_indicacoes_stats():
-    return {"status": "indisponível", "msg": "Dados de indicações brutas (196M) removidos para simplificação Lakehouse."}
+    return {
+        "status": "indisponível",
+        "msg": "Dados de indicações brutas (196M) removidos para simplificação Lakehouse.",
+    }
+
 
 @router.get("/indicacoes")
 def listar_indicacoes_zarc():
     return {"items": [], "total": 0, "msg": "Este endpoint foca apenas em riscos climáticos."}
+
 
 @router.get("/risco")
 def listar_risco_zarc(
@@ -19,7 +26,7 @@ def listar_risco_zarc(
     cultura: Optional[str] = Query(None, description="Filtro por cultura"),
     id_solo: Optional[str] = Query(None, description="Tipo de solo (1, 2 ou 3)"),
     page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=500)
+    page_size: int = Query(50, ge=1, le=500),
 ):
     sql = """
         SELECT 
