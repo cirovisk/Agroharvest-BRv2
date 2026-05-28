@@ -332,26 +332,35 @@ def auditoria_estimativas(cultura: str, uf: Optional[str] = None):
     sql_conab += " GROUP BY uf, ano_agricola LIMIT 50"
     conab_df = duck_db.execute_query(sql_conab, tuple(params_conab))
 
+    # PAM Realizado Consolidadas em uma única query bulk para evitar o N+1 queries!
+    pam_full_df = duck_db.execute_query(
+        """
+        SELECT m.uf, p.ano, sum(p.qtde_produzida_ton) as prod
+        FROM fato_producao_pam p
+        JOIN dim_municipio m ON p.id_municipio = m.id_municipio
+        WHERE p.id_cultura = ?
+        GROUP BY m.uf, p.ano
+        """,
+        (id_cult,)
+    )
+
+    pam_lookup = {}
+    for _, pam_row in pam_full_df.iterrows():
+        p_uf = pam_row['uf']
+        p_ano = pam_row['ano']
+        if p_uf and not np.isnan(p_ano):
+            pam_lookup[(str(p_uf).upper().strip(), int(p_ano))] = float(pam_row['prod']) if not np.isnan(pam_row['prod']) else 0.0
+
     results = []
     for _, row in conab_df.iterrows():
         ano_agricola = row['ano_agricola']
         try:
             ano_pam = int(str(ano_agricola).split("/")[0])
-        except: 
+        except (ValueError, TypeError, IndexError): 
             continue
 
-        # PAM Realizado
-        pam_df = duck_db.execute_query(
-            """
-            SELECT sum(p.qtde_produzida_ton) as prod
-            FROM fato_producao_pam p
-            JOIN dim_municipio m ON p.id_municipio = m.id_municipio
-            WHERE p.id_cultura = ? AND m.uf = ? AND p.ano = ?
-            """,
-            (id_cult, row.uf, ano_pam)
-        )
-        
-        realizado_ton = float(pam_df.iloc[0]['prod']) if not pam_df.empty and not np.isnan(pam_df.iloc[0]['prod']) else None
+        # PAM Realizado buscado em O(1) do dicionário em memória
+        realizado_ton = pam_lookup.get((str(row.uf).upper().strip(), ano_pam), None)
         realizado_mil_t = (realizado_ton / 1000.0) if realizado_ton else None
         estimativa_mil_t = float(row['estimativa']) if not np.isnan(row['estimativa']) else None
 

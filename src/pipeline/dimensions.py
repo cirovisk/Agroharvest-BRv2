@@ -98,7 +98,7 @@ def carregar_municipios_completo_ibge(conn):
             uf = m.get("microrregiao", {}).get("mesorregiao", {}).get("UF", {}).get("sigla")
             if not uf:
                 uf = m.get("regiao-imediata", {}).get("regiao-intermediaria", {}).get("UF", {}).get("sigla")
-        except:
+        except Exception:
             uf = "XX"
             
         uf = str(uf).upper() if uf else "XX"
@@ -126,7 +126,8 @@ def preencher_dimensao_municipio(conn, df_pam=pd.DataFrame(), df_zarc=pd.DataFra
         pam_muns = pam_muns.rename(columns={"cod_municipio_ibge": "codigo_ibge", "municipio_nome": "nome"})
         try:
             conn.execute("INSERT OR IGNORE INTO dim_municipio (codigo_ibge, nome, uf) SELECT codigo_ibge, nome, uf FROM pam_muns")
-        except: pass
+        except Exception as e:
+            log.warning(f"Falha ao inserir municipios do PAM no DuckDB: {e}")
             
     if not df_zarc.empty and "cod_municipio_ibge" in df_zarc.columns:
         zarc_muns = df_zarc[["cod_municipio_ibge", "municipio", "uf"]].drop_duplicates().dropna(subset=["cod_municipio_ibge"])
@@ -134,7 +135,8 @@ def preencher_dimensao_municipio(conn, df_pam=pd.DataFrame(), df_zarc=pd.DataFra
         zarc_muns = zarc_muns.rename(columns={"cod_municipio_ibge": "codigo_ibge", "municipio": "nome"})
         try:
             conn.execute("INSERT OR IGNORE INTO dim_municipio (codigo_ibge, nome, uf) SELECT codigo_ibge, nome, uf FROM zarc_muns")
-        except: pass
+        except Exception as e:
+            log.warning(f"Falha ao inserir municipios do ZARC no DuckDB: {e}")
 
     # Fetch results
     df = conn.execute("SELECT id_municipio, codigo_ibge, nome, uf FROM dim_municipio").df()

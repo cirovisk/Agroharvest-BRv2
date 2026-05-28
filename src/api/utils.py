@@ -7,6 +7,14 @@ def paginate_query(sql_base: str, page: int, page_size: int, params: tuple | lis
     Paginação nativa com DuckDB.
     Recebe a string SQL base (sem LIMIT/OFFSET), calcula o total e retorna a página solicitada.
     """
+    # Validações e limites superiores/inferiores de segurança para evitar DoS e erros
+    if page < 1:
+        page = 1
+    if page_size < 1:
+        page_size = 10
+    elif page_size > 500:
+        page_size = 500
+
     # Conta o total de registros (DuckDB faz isso muito rápido com Parquet)
     count_sql = f"SELECT COUNT(*) as total FROM ({sql_base}) as subq"
     total_df = duck_db.execute_query(count_sql, params)
