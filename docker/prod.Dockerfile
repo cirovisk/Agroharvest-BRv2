@@ -19,11 +19,20 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir gunicorn
 
+# Cria um grupo e um usuário não-root (UID/GID 1000 para alinhar com o host em volumes montados)
+RUN groupadd -g 1000 nonroot && \
+    useradd -u 1000 -g nonroot -d /app -s /sbin/nologin nonroot
+
 # Copia o código fonte (em prod, o código fica fixo na imagem)
 COPY . .
 
+# Garante permissões adequadas no diretório de trabalho
+RUN mkdir -p /app/data && chown -R nonroot:nonroot /app
+
 # Expõe a porta da API
 EXPOSE 8000
+
+USER nonroot
 
 # Comando para rodar com Gunicorn e workers Uvicorn (Otimizado para produção)
 # --workers 4: Ajustar conforme o número de cores da sua instância na Oracle

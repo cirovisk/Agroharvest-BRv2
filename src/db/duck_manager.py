@@ -13,8 +13,9 @@ class DuckManager:
     Mapeia arquivos Parquet em views SQL automaticamente e guarda dimensões.
     """
 
-    def __init__(self, storage_path="data/storage", db_file="data/storage/cultivares.duckdb"):
-        self.storage_path = storage_path
+    def __init__(self, storage_path=None, db_file=None):
+        self.storage_path = storage_path or os.getenv("STORAGE_PATH", "data/storage")
+        db_file = db_file or os.getenv("DUCKDB_FILE", os.path.join(self.storage_path, "cultivares.duckdb"))
         os.makedirs(self.storage_path, exist_ok=True)
         self.conn = duckdb.connect(database=db_file)
         self.refresh_views()
@@ -62,7 +63,7 @@ class DuckManager:
             return self.conn.execute(sql, params).df()
         except Exception as e:
             log.error(f"Erro na query DuckDB: {e}")
-            return pd.DataFrame()
+            raise
 
 
 # Instância única (Singleton simplificado para o app)

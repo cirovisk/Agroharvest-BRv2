@@ -23,7 +23,7 @@ def get_clima(
     """
     sql = """
         SELECT 
-            f.id_meteo,
+            row_number() over () as id_meteo,
             f.data,
             f.precipitacao_total_mm,
             f.temp_media_c,

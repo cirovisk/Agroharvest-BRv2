@@ -12,7 +12,7 @@ router = APIRouter(prefix="/insumos", tags=["Insumos"])
 def get_agrofit(cultura: Optional[str] = None, classe: Optional[str] = None, page: int = 1, page_size: int = 20):
     sql = """
         SELECT 
-            a.id_agrofit,
+            row_number() over () as id_agrofit,
             a.nr_registro,
             a.marca_comercial,
             a.classe,
@@ -37,7 +37,7 @@ def get_agrofit(cultura: Optional[str] = None, classe: Optional[str] = None, pag
 def get_fertilizantes(uf: Optional[str] = None, atividade: Optional[str] = None, page: int = 1, page_size: int = 20):
     sql = """
         SELECT 
-            id_fertilizante,
+            row_number() over () as id_fertilizante,
             uf,
             municipio,
             nr_registro_estabelecimento,

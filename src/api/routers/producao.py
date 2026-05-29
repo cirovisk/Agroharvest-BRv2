@@ -22,7 +22,7 @@ def get_pam(
     """
     sql = """
         SELECT 
-            p.id_producao,
+            row_number() over () as id_producao,
             p.ano,
             p.area_plantada_ha,
             p.area_colhida_ha,
@@ -64,7 +64,7 @@ def get_conab(
     """
     sql = """
         SELECT 
-            p.id_conab,
+            row_number() over () as id_conab,
             p.uf,
             p.ano_agricola,
             p.safra,
@@ -104,7 +104,7 @@ def get_sigef(
     """
     sql = """
         SELECT 
-            s.id_sigef_producao,
+            row_number() over () as id_sigef_producao,
             s.safra,
             s.especie,
             s.categoria,
