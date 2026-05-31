@@ -18,6 +18,78 @@ def duck_conn():
     # Inicializa dimensões
     from pipeline.dimensions import init_dimensions
     init_dimensions(conn)
+    
+    # Inicializa tabelas de fatos mockadas para os testes rodarem
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS fato_producao_pam (
+            ano INTEGER,
+            area_plantada_ha REAL,
+            area_colhida_ha REAL,
+            qtde_produzida_ton REAL,
+            valor_producao_mil_reais REAL,
+            id_cultura INTEGER,
+            id_municipio INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS fato_risco_zarc (
+            periodo_plantio VARCHAR,
+            tipo_solo VARCHAR,
+            risco_climatico VARCHAR,
+            id_cultura INTEGER,
+            id_municipio INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS fato_meteorologia (
+            data DATE,
+            precipitacao_total_mm REAL,
+            temp_media_c REAL,
+            umidade_media REAL,
+            id_municipio INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS fato_registro_cultivares (
+            nr_registro VARCHAR,
+            id_cultura INTEGER,
+            situacao VARCHAR
+        );
+        CREATE TABLE IF NOT EXISTS fato_sigef_producao (
+            producao_bruta_t REAL,
+            id_cultura INTEGER,
+            safra VARCHAR,
+            especie VARCHAR,
+            categoria VARCHAR,
+            area_ha REAL,
+            producao_est_t REAL,
+            id_municipio INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS fato_agrofit (
+            marca_comercial VARCHAR,
+            id_cultura INTEGER,
+            nr_registro VARCHAR,
+            classe VARCHAR,
+            praga_comum VARCHAR
+        );
+        CREATE TABLE IF NOT EXISTS fato_precos_conab_mensal (
+            valor_kg REAL,
+            id_cultura INTEGER,
+            uf VARCHAR,
+            ano INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS fato_fertilizantes_estabelecimentos (
+            uf VARCHAR,
+            municipio VARCHAR,
+            nr_registro_estabelecimento VARCHAR,
+            razao_social VARCHAR,
+            area_atuacao VARCHAR,
+            atividade VARCHAR
+        );
+        CREATE TABLE IF NOT EXISTS fato_producao_conab (
+            uf VARCHAR,
+            ano_agricola VARCHAR,
+            safra VARCHAR,
+            area_plantada_mil_ha REAL,
+            producao_mil_t REAL,
+            produtividade_t_ha REAL,
+            id_cultura INTEGER
+        );
+    """)
     return conn
 
 @pytest.fixture(autouse=True)
