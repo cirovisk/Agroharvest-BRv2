@@ -66,5 +66,28 @@ class DuckManager:
             raise
 
 
-# Instância única (Singleton simplificado para o app)
-duck_db = DuckManager()
+class LazyDuckManagerProxy:
+    """
+    Proxy preguiçoso (Lazy Proxy) para o DuckManager.
+    Evita qualquer I/O físico (criação de diretórios, conexões de arquivos)
+    no momento em que o módulo 'db.duck_manager' é importado.
+    """
+
+    def __init__(self):
+        # Define o atributo interno usando super() para contornar o __setattr__ recursivo
+        super().__setattr__("_instance", None)
+
+    def _get_instance(self) -> DuckManager:
+        if self._instance is None:
+            super().__setattr__("_instance", DuckManager())
+        return self._instance
+
+    def __getattr__(self, name):
+        return getattr(self._get_instance(), name)
+
+    def __setattr__(self, name, value):
+        setattr(self._get_instance(), name, value)
+
+
+# Instância única (Singleton lazy carregado sob demanda)
+duck_db = LazyDuckManagerProxy()
