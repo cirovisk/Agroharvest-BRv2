@@ -15,8 +15,8 @@ def paginate_query(sql_base: str, page: int, page_size: int, params: tuple | lis
         page = 1
     if page_size < 1:
         page_size = 10
-    elif page_size > 500:
-        page_size = 500
+    elif page_size > 100:
+        page_size = 100
 
     # Conta o total de registros (DuckDB faz isso muito rápido com Parquet)
     count_sql = f"SELECT COUNT(*) as total FROM ({sql_base}) as subq"

@@ -25,8 +25,8 @@ def listar_risco_zarc(
     codigo_ibge: Optional[str] = Query(None, description="Código IBGE do município"),
     cultura: Optional[str] = Query(None, description="Filtro por cultura"),
     id_solo: Optional[str] = Query(None, description="Tipo de solo (1, 2 ou 3)"),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=500),
+    page: int = Query(1, ge=1, description="Número da página"),
+    page_size: int = Query(20, ge=1, le=100, description="Itens por página (máximo: 100)"),
 ):
     sql = """
         SELECT 

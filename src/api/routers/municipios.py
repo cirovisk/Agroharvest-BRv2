@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from api.schemas import MunicipioBaseSchema, PaginatedResponse
 from api.utils import paginate_query
@@ -10,7 +10,11 @@ router = APIRouter(prefix="/municipios", tags=["Municípios"])
 
 
 @router.get("/", response_model=PaginatedResponse[MunicipioBaseSchema])
-def list_municipios(uf: Optional[str] = None, page: int = 1, page_size: int = 20):
+def list_municipios(
+    uf: Optional[str] = None,
+    page: int = Query(1, ge=1, description="Número da página"),
+    page_size: int = Query(20, ge=1, le=100, description="Itens por página (máximo: 100)"),
+):
     sql = "SELECT id_municipio, codigo_ibge, nome, uf FROM dim_municipio WHERE 1=1"
     params = []
     if uf:

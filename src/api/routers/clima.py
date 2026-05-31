@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from api.schemas import MeteorologiaSchema, PaginatedResponse
 from api.utils import paginate_query
@@ -14,8 +14,8 @@ def get_clima(
     codigo_ibge: Optional[str] = None,
     data_inicio: Optional[date] = None,
     data_fim: Optional[date] = None,
-    page: int = 1,
-    page_size: int = 20,
+    page: int = Query(1, ge=1, description="Número da página"),
+    page_size: int = Query(20, ge=1, le=100, description="Itens por página (máximo: 100)"),
 ) -> PaginatedResponse:
     """
     Obtém dados meteorológicos diários de municípios (via Open-Meteo) a partir de views Parquet paginadas.
