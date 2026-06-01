@@ -40,7 +40,7 @@ services:
       - MB_DB_FILE_PATH=/metabase-data/metabase.db
     volumes:
       - metabase_data:/metabase-data
-      - ./plugins:/plugins                # Pasta com o driver .jar do DuckDB
+      - ./docker/metabase/plugins:/plugins                # Pasta com o driver .jar do DuckDB
       - ./data:/app/data                  # Acesso ao banco DuckDB e Parquets
     deploy:
       resources:

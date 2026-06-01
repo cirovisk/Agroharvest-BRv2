@@ -17,7 +17,7 @@ Para este projeto de portfólio, optou-se por uma stack moderna de **OLAP (Onlin
 
 ## 🖥️ Dashboard - Visualização de Dados
 
-![Dashboard AgroHarvest Success](./assets/dashboard.gif)
+![Dashboard AgroHarvest Success](./docs/assets/dashboard.gif)
 
 *Visualização analítica consolidada no Metabase, integrando fluxos de produção (PAM), viabilidade climática (ZARC) e registros genéticos (RNC/SIGEF).*
 

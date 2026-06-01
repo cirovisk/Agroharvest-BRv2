@@ -1,6 +1,6 @@
 #!/bin/bash
 # Script para baixar o driver DuckDB oficial (MotherDuck) para o Metabase
-PLUGINS_DIR="./plugins"
+PLUGINS_DIR="./docker/metabase/plugins"
 URL="https://github.com/MotherDuck-Open-Source/metabase_duckdb_driver/releases/latest/download/duckdb.metabase-driver.jar"
 
 if [ ! -d "$PLUGINS_DIR" ]; then
