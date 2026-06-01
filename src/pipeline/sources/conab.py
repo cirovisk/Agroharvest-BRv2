@@ -37,7 +37,6 @@ class ConabPipeline(BaseSource):
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir, exist_ok=True)
 
-
     def extract(self, **kwargs) -> dict:
         """
         Extrai todos os arquivos configurados.
@@ -91,7 +90,6 @@ class ConabPipeline(BaseSource):
         if "precos" in key:
             return ConabPrecosSchema
         return None
-
 
     def clean(self, dataframes: dict) -> dict:
         """Entrypoint funcional para limpar o dict vindo do extract."""
@@ -180,7 +178,6 @@ class ConabPipeline(BaseSource):
 
         available_cols = [c for c in cols if c in df.columns]
         return df[available_cols]
-
 
     def load(self, df_dict: dict, lookups: dict) -> str:
         if not isinstance(df_dict, dict):

@@ -63,7 +63,6 @@ class CultivaresPipeline(BaseSource):
         self.use_cache = use_cache
         self.cache_path = Path(cache_path).resolve()
 
-
     def extract(self, **kwargs) -> pd.DataFrame:
         if self.use_cache and self.cache_path.exists():
             if not self.is_file_stale(str(self.cache_path), threshold_days=30):
@@ -102,7 +101,6 @@ class CultivaresPipeline(BaseSource):
             na_values=["", "NA", "N/A", "nan", "NaN", "NULL", "null", "-", "--"],
             keep_default_na=True,
         )
-
 
     def clean(self, df: pd.DataFrame) -> pd.DataFrame:
         if df.empty:
@@ -212,7 +210,6 @@ class CultivaresPipeline(BaseSource):
         )
 
         return df_clean
-
 
     def load(self, df: pd.DataFrame, lookups: dict) -> str:
         if df.empty:

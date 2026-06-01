@@ -48,7 +48,6 @@ class ZarcPipeline(BaseSource):
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.chunksize = chunksize
 
-
     def run(self, lookups: dict, **kwargs) -> str:
         """Override: processa em chunks para economia de memória."""
         self.log.info("Iniciando pipeline ZARC (streaming)...")
@@ -69,7 +68,6 @@ class ZarcPipeline(BaseSource):
         summary = f"{total} registros processados (streaming)"
         self.log.info(f"Pipeline ZARC concluído: {summary}")
         return summary
-
 
     def download_data(self):
         """
@@ -134,7 +132,6 @@ class ZarcPipeline(BaseSource):
 
         except Exception as e:
             self.log.error(f"Erro ao baixar/processar dados do MAPA ZARC: {e}")
-
 
     def extract(self, **kwargs):
         """
@@ -205,7 +202,6 @@ class ZarcPipeline(BaseSource):
             return pd.DataFrame()
         return pd.concat(unique_muns).drop_duplicates(subset=["cod_municipio_ibge"])
 
-
     def clean(self, df: pd.DataFrame) -> pd.DataFrame:
         if df.empty:
             return df
@@ -232,7 +228,6 @@ class ZarcPipeline(BaseSource):
             df_clean = df_clean.drop(columns=["cultura_raw"])
 
         return df_clean
-
 
     def load(self, df: pd.DataFrame, lookups: dict) -> str:
         if df.empty:
