@@ -25,9 +25,7 @@ from pipeline.schemas import (
 )
 
 
-# ---------------------------------------------------------------------------
 # CONAB Produção
-# ---------------------------------------------------------------------------
 
 class TestConabProducaoSchema:
     def test_valid_data_passes(self):
@@ -60,9 +58,7 @@ class TestConabProducaoSchema:
             ConabProducaoSchema.validate(df)
 
 
-# ---------------------------------------------------------------------------
 # CONAB Preços
-# ---------------------------------------------------------------------------
 
 class TestConabPrecosSchema:
     def test_valid_data_passes(self):
@@ -86,9 +82,7 @@ class TestConabPrecosSchema:
             ConabPrecosSchema.validate(df)
 
 
-# ---------------------------------------------------------------------------
 # SIDRA
-# ---------------------------------------------------------------------------
 
 class TestSidraSchema:
     def test_valid_data_passes(self):
@@ -113,9 +107,7 @@ class TestSidraSchema:
             SidraSchema.validate(df)
 
 
-# ---------------------------------------------------------------------------
 # ZARC
-# ---------------------------------------------------------------------------
 
 class TestZarcSchema:
     def test_valid_data_passes(self):
@@ -136,9 +128,7 @@ class TestZarcSchema:
             ZarcSchema.validate(df)
 
 
-# ---------------------------------------------------------------------------
 # Agrofit
-# ---------------------------------------------------------------------------
 
 class TestAgrofitSchema:
     def test_valid_data_passes(self):
@@ -159,9 +149,7 @@ class TestAgrofitSchema:
             AgrofitSchema.validate(df)
 
 
-# ---------------------------------------------------------------------------
 # Cultivares
-# ---------------------------------------------------------------------------
 
 class TestCultivaresSchema:
     def test_valid_data_passes(self):
@@ -182,9 +170,7 @@ class TestCultivaresSchema:
             CultivaresSchema.validate(df)
 
 
-# ---------------------------------------------------------------------------
 # Fertilizantes
-# ---------------------------------------------------------------------------
 
 class TestFertilizantesSchema:
     def test_valid_data_passes(self):
@@ -197,9 +183,7 @@ class TestFertilizantesSchema:
         assert not result.empty
 
 
-# ---------------------------------------------------------------------------
 # SIGEF
-# ---------------------------------------------------------------------------
 
 class TestSigefProducaoSchema:
     def test_valid_data_passes(self):
@@ -230,9 +214,7 @@ class TestSigefReservaSchema:
         assert not result.empty
 
 
-# ---------------------------------------------------------------------------
 # Open-Meteo
-# ---------------------------------------------------------------------------
 
 class TestOpenMeteoSchema:
     def test_valid_data_passes(self):
@@ -255,9 +237,7 @@ class TestOpenMeteoSchema:
             OpenMeteoSchema.validate(df)
 
 
-# ---------------------------------------------------------------------------
 # Validação com BaseSource.validate()
-# ---------------------------------------------------------------------------
 
 class TestBaseSourceValidate:
     def test_validate_passthrough_no_schema(self):

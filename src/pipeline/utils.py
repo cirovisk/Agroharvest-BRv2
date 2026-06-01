@@ -11,9 +11,7 @@ import pandas as pd
 log = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
 # Normalização de Strings
-# ---------------------------------------------------------------------------
 
 
 def normalize_string(series: pd.Series) -> pd.Series:
@@ -28,9 +26,7 @@ def normalize_string(series: pd.Series) -> pd.Series:
     return series.apply(remove_accents).str.strip()
 
 
-# ---------------------------------------------------------------------------
 # Lookup de Cultura (com Sinônimos)
-# ---------------------------------------------------------------------------
 
 
 def get_cultura_id(nome_cultura, mapping):
@@ -75,9 +71,7 @@ def get_cultura_id(nome_cultura, mapping):
     return None
 
 
-# ---------------------------------------------------------------------------
 # Mapeamento de Município por Nome
-# ---------------------------------------------------------------------------
 
 
 def map_municipio_by_name(df, map_mun_name):

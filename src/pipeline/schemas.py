@@ -13,9 +13,7 @@ Uso:
 import pandera as pa
 from pandera import Check, Column, DataFrameSchema
 
-# ---------------------------------------------------------------------------
 # CONAB
-# ---------------------------------------------------------------------------
 
 ConabProducaoSchema = DataFrameSchema(
     {
@@ -43,9 +41,7 @@ ConabPrecosSchema = DataFrameSchema(
 )
 
 
-# ---------------------------------------------------------------------------
 # SIDRA / PAM (IBGE)
-# ---------------------------------------------------------------------------
 
 SidraSchema = DataFrameSchema(
     {
@@ -63,9 +59,7 @@ SidraSchema = DataFrameSchema(
 )
 
 
-# ---------------------------------------------------------------------------
 # ZARC (MAPA)
-# ---------------------------------------------------------------------------
 
 ZarcSchema = DataFrameSchema(
     {
@@ -78,9 +72,7 @@ ZarcSchema = DataFrameSchema(
 )
 
 
-# ---------------------------------------------------------------------------
 # Agrofit (MAPA)
-# ---------------------------------------------------------------------------
 
 AgrofitSchema = DataFrameSchema(
     {
@@ -94,9 +86,7 @@ AgrofitSchema = DataFrameSchema(
 )
 
 
-# ---------------------------------------------------------------------------
 # Cultivares / SNPC (MAPA)
-# ---------------------------------------------------------------------------
 
 CultivaresSchema = DataFrameSchema(
     {
@@ -109,9 +99,7 @@ CultivaresSchema = DataFrameSchema(
 )
 
 
-# ---------------------------------------------------------------------------
 # Fertilizantes / SIPEAGRO (MAPA)
-# ---------------------------------------------------------------------------
 
 FertilizantesSchema = DataFrameSchema(
     {
@@ -125,9 +113,7 @@ FertilizantesSchema = DataFrameSchema(
 )
 
 
-# ---------------------------------------------------------------------------
 # SIGEF (MAPA)
-# ---------------------------------------------------------------------------
 
 SigefProducaoSchema = DataFrameSchema(
     {
@@ -150,9 +136,7 @@ SigefReservaSchema = DataFrameSchema(
 )
 
 
-# ---------------------------------------------------------------------------
 # Open-Meteo
-# ---------------------------------------------------------------------------
 
 OpenMeteoSchema = DataFrameSchema(
     {
@@ -168,9 +152,7 @@ OpenMeteoSchema = DataFrameSchema(
 )
 
 
-# ---------------------------------------------------------------------------
 # Registry: mapeia nomes de schema para schemas (para lookup dinâmico)
-# ---------------------------------------------------------------------------
 
 SCHEMA_REGISTRY = {
     "conab_producao": ConabProducaoSchema,

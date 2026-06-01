@@ -39,12 +39,10 @@ class OpenMeteoPipeline(BaseSource):
         self.log.info("Iniciando pipeline Open-Meteo...")
         db = lookups["db"]
 
-        # 1. Carregar coordenadas dos municípios
         coords_df = self.get_municipios_coords()
         if coords_df.empty:
             return "0 registros (sem coordenadas)"
 
-        # 2. Obter municípios do banco via DuckDB
         muns_df = db.execute("SELECT id_municipio, codigo_ibge FROM dim_municipio").df()
 
         mun_coords = {}
@@ -62,17 +60,14 @@ class OpenMeteoPipeline(BaseSource):
         selected_muns = dict(list(mun_coords.items())[:limit])
         self.log.info(f"Selecionados {len(selected_muns)} municípios para buscar dados meteorológicos.")
 
-        # 3. Extract
         raw_data = self.extract(mun_coords=selected_muns)
 
-        # 4. Clean
         df_meteo = self.clean(raw_data)
         df_meteo = self.validate(df_meteo)
 
         if df_meteo.empty:
             return "0 registros (sem dados meteorológicos)"
 
-        # 5. Load
         result = self.load(df_meteo, lookups)
         self.log.info(f"Pipeline Open-Meteo concluído: {result}")
         return result

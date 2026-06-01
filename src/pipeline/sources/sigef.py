@@ -44,7 +44,6 @@ class SigefPipeline(BaseSource):
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir, exist_ok=True)
 
-    # ---- EXTRACT ----
 
     def extract(self, **kwargs) -> dict:
         dataframes = {}
@@ -75,7 +74,6 @@ class SigefPipeline(BaseSource):
 
         return dataframes
 
-    # ---- CLEAN ----
 
     def clean(self, dataframes: dict) -> dict:
         processed = {}
@@ -176,7 +174,6 @@ class SigefPipeline(BaseSource):
 
         return df
 
-    # ---- LOAD ----
 
     def load(self, df_dict: dict, lookups: dict) -> str:
         if not isinstance(df_dict, dict):

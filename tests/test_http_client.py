@@ -14,9 +14,7 @@ import requests
 from pipeline.http_client import ResilientHTTPClient
 
 
-# ---------------------------------------------------------------------------
 # Fixtures
-# ---------------------------------------------------------------------------
 
 @pytest.fixture
 def client():
@@ -40,9 +38,7 @@ def client_ssl():
     )
 
 
-# ---------------------------------------------------------------------------
 # Sucesso na Primeira Tentativa
-# ---------------------------------------------------------------------------
 
 class TestSuccessPath:
     def test_get_success(self, client):
@@ -68,9 +64,7 @@ class TestSuccessPath:
         assert mock_req.call_count == 1
 
 
-# ---------------------------------------------------------------------------
 # Retries em Erros Transientes
-# ---------------------------------------------------------------------------
 
 class TestRetryBehavior:
     def test_retry_on_500_then_success(self, client):
@@ -144,9 +138,7 @@ class TestRetryBehavior:
         assert mock_req.call_count == 2
 
 
-# ---------------------------------------------------------------------------
 # Exaustão de Retries
-# ---------------------------------------------------------------------------
 
 class TestRetryExhaustion:
     def test_raises_after_max_retries_connection(self, client):
@@ -183,9 +175,7 @@ class TestRetryExhaustion:
                 client.get("https://api.gov.br/data")
 
 
-# ---------------------------------------------------------------------------
 # Erros Não-Retryáveis
-# ---------------------------------------------------------------------------
 
 class TestNonRetryableErrors:
     def test_invalid_url_no_retry(self, client):
@@ -214,9 +204,7 @@ class TestNonRetryableErrors:
         assert mock_req.call_count == 1
 
 
-# ---------------------------------------------------------------------------
 # Backoff Exponencial
-# ---------------------------------------------------------------------------
 
 class TestBackoffTiming:
     def test_backoff_delays_increase(self, client):
@@ -235,9 +223,7 @@ class TestBackoffTiming:
         assert client._calc_delay(10) == 10.0 # Ainda capped
 
 
-# ---------------------------------------------------------------------------
 # SSL Fallback
-# ---------------------------------------------------------------------------
 
 class TestSSLFallback:
     def test_ssl_fallback_retries_without_verify(self, client_ssl):
@@ -270,9 +256,6 @@ class TestSSLFallback:
                 client.get("https://dados.agricultura.gov.br/file.csv")
 
 
-# ---------------------------------------------------------------------------
-# Download Streaming
-# ---------------------------------------------------------------------------
 
 class TestDownload:
     def test_download_saves_file(self, client, tmp_path):
@@ -292,9 +275,7 @@ class TestDownload:
             assert f.read() == b"chunk1chunk2"
 
 
-# ---------------------------------------------------------------------------
 # Configuração Customizada
-# ---------------------------------------------------------------------------
 
 class TestCustomConfig:
     def test_custom_timeout(self):
