@@ -157,9 +157,10 @@ def preencher_dimensao_municipio(conn, df_pam=pd.DataFrame(), df_zarc=pd.DataFra
     mun_map_ibge = df.set_index("codigo_ibge")["id_municipio"].to_dict()
 
     # Criar o map_nome: (nome.lower(), uf) -> id
-    mun_map_name = {}
-    for _, row in df.iterrows():
-        if pd.notna(row["uf"]) and pd.notna(row["nome"]):
-            mun_map_name[(str(row["nome"]).lower().strip(), str(row["uf"]).strip().upper())] = row["id_municipio"]
+    valid_df = df.dropna(subset=["nome", "uf"])
+    mun_map_name = {
+        (str(n).lower().strip(), str(u).strip().upper()): idx
+        for n, u, idx in zip(valid_df["nome"], valid_df["uf"], valid_df["id_municipio"])
+    }
 
     return mun_map_ibge, mun_map_name
