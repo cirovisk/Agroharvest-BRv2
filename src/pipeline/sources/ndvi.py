@@ -50,13 +50,13 @@ class NdviPipeline(BaseSource):
             return df
 
         self.log.info(f"Cleaner NDVI: {len(df)} linha(s) recebida(s).")
-        
+
         # Garantir limpeza de strings e tipos corretos
         df["codigo_ibge"] = df["codigo_ibge"].astype(str).str.strip()
         df["ano"] = df["ano"].astype(int)
         df["ndvi_max_safra"] = pd.to_numeric(df["ndvi_max_safra"], errors="coerce")
         df["ndvi_mean_safra"] = pd.to_numeric(df["ndvi_mean_safra"], errors="coerce")
-        
+
         self.log.info("Cleaner NDVI concluído.")
         return df
 
@@ -65,22 +65,22 @@ class NdviPipeline(BaseSource):
             return "0 registros"
 
         df_f = df.copy()
-        
+
         # Mapear codigo_ibge para id_municipio
         df_f["codigo_ibge"] = df_f["codigo_ibge"].str[:7]
         df_f["id_municipio"] = df_f["codigo_ibge"].map(lookups["municipios_ibge"])
-        
+
         # Remover registros sem id_municipio correspondente
         df_f = df_f.dropna(subset=["id_municipio"])
-        
+
         # Remover duplicados
         df_f = df_f.drop_duplicates(subset=["id_municipio", "ano"])
-        
+
         # Salvar Parquet
         cols = ["id_municipio", "ano", "ndvi_max_safra", "ndvi_mean_safra"]
         df_f = df_f[cols]
         path = self.save_parquet(df_f, "fato_ndvi_satelite")
-        
+
         result = f"{len(df_f)} registros salvos em {path}"
         self.log.info(f"Fato NDVI Lakehouse: {result}.")
         return result
