@@ -20,6 +20,7 @@ erDiagram
     DIM-MUNICIPIO ||--o{ FATO-METEOROLOGIA : "clima"
     DIM-MUNICIPIO ||--o{ FATO-FERTILIZANTES : "estabelecimentos"
     DIM-MUNICIPIO ||--o{ FATO-SIGEF : "localização"
+    DIM-MUNICIPIO ||--o{ FATO-NDVI : "satélite"
     
     DIM-MANTENEDOR ||--o{ FATO-CULTIVAR : "mantém"
 
@@ -40,6 +41,13 @@ erDiagram
         int ano
         float area_plantada_ha
         float qtde_produzida_ton
+    }
+    FATO-NDVI {
+        string parquet_file "data/storage/fato_ndvi_satelite/*.parquet"
+        int id_municipio FK
+        int ano
+        float ndvi_max_safra
+        float ndvi_mean_safra
     }
 ```
 

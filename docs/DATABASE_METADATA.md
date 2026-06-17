@@ -53,6 +53,10 @@ As tabelas fato contêm os indicadores volumétricos. Elas são lidas pelo DuckD
 - Local: `data/storage/fato_meteorologia/data.parquet`
 - Campos: `id_municipio`, `data`, `precipitacao_total_mm`, `temp_media_c`, `temp_max_c`, `temp_min_c`.
 
+### `fato_ndvi_satelite` (Fonte: Sensoriamento Remoto / MODIS)
+- Local: `data/storage/fato_ndvi_satelite/data.parquet`
+- Campos: `id_municipio`, `ano`, `ndvi_max_safra`, `ndvi_mean_safra`.
+
 ---
 
 ## ⚙️ Especificações Técnicas (OLAP Optimization)

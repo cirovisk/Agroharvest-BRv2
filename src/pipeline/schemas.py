@@ -152,6 +152,21 @@ OpenMeteoSchema = DataFrameSchema(
 )
 
 
+# NDVI Satélite
+
+NdviSchema = DataFrameSchema(
+    {
+        "codigo_ibge": Column(str, nullable=False),
+        "ano": Column(int, Check.gt(1900), nullable=False),
+        "ndvi_max_safra": Column(float, Check.between(-1.0, 1.0), nullable=True),
+        "ndvi_mean_safra": Column(float, Check.between(-1.0, 1.0), nullable=True),
+    },
+    coerce=True,
+    strict=False,
+    name="NdviSchema",
+)
+
+
 # Registry: mapeia nomes de schema para schemas (para lookup dinâmico)
 
 SCHEMA_REGISTRY = {
@@ -165,4 +180,5 @@ SCHEMA_REGISTRY = {
     "sigef_producao": SigefProducaoSchema,
     "sigef_reserva": SigefReservaSchema,
     "open_meteo": OpenMeteoSchema,
+    "ndvi": NdviSchema,
 }

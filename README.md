@@ -24,7 +24,7 @@ Para este projeto de portfólio, optou-se por uma stack moderna de **OLAP (Onlin
 ## 📊 Fontes de Dados Integradas
 
 <details>
-<summary>Clique para ver o detalhamento das 8 fontes</summary>
+<summary>Clique para ver o detalhamento das 9 fontes</summary>
 
 1.  **MAPA/SNPC (CultivarWeb):** Registro Nacional de Cultivares (RNC).
 2.  **IBGE/SIDRA (PAM):** Produção Agrícola Municipal (Séries históricas).
@@ -34,6 +34,7 @@ Para este projeto de portfólio, optou-se por uma stack moderna de **OLAP (Onlin
 6.  **MAPA/SIPEAGRO:** Registro de estabelecimentos produtores de fertilizantes e corretivos.
 7.  **MAPA/SIGEF (Sementes):** Controle e fiscalização da produção de tecnologia genética.
 8.  **Open-Meteo (Meteorologia):** API global com indicadores históricos diários para os 5570 municípios.
+9.  **Sensoriamento Remoto (NDVI/Satélite):** NDVI Máximo e Médio municipal durante o período vegetativo crítico (MODIS).
 
 </details>
 
