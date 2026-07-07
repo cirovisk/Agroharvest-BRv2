@@ -9,7 +9,7 @@ com mensagens explícitas.
 import pytest
 import pandas as pd
 import numpy as np
-import pandera as pa
+from pandera.errors import SchemaError, SchemaErrors
 
 from pipeline.schemas import (
     ConabProducaoSchema,
@@ -25,7 +25,7 @@ from pipeline.schemas import (
 )
 
 
-# CONAB Produção
+# CONAB Production
 
 class TestConabProducaoSchema:
     def test_valid_data_passes(self):
@@ -45,7 +45,7 @@ class TestConabProducaoSchema:
             "uf": ["MT"],
             "producao_mil_t": [30.0],
         })
-        with pytest.raises(pa.errors.SchemaError):
+        with pytest.raises(SchemaError):
             ConabProducaoSchema.validate(df)
 
     def test_negative_producao_fails(self):
@@ -54,11 +54,11 @@ class TestConabProducaoSchema:
             "uf": ["MT"],
             "producao_mil_t": [-5.0],
         })
-        with pytest.raises(pa.errors.SchemaError):
+        with pytest.raises(SchemaError):
             ConabProducaoSchema.validate(df)
 
 
-# CONAB Preços
+# CONAB Prices
 
 class TestConabPrecosSchema:
     def test_valid_data_passes(self):
@@ -78,7 +78,7 @@ class TestConabPrecosSchema:
             "ano": [2024],
             "valor_kg": [-0.5],
         })
-        with pytest.raises(pa.errors.SchemaError):
+        with pytest.raises(SchemaError):
             ConabPrecosSchema.validate(df)
 
 
@@ -103,7 +103,7 @@ class TestSidraSchema:
             "cultura": ["soja"],
             "ano": ["2022"],
         })
-        with pytest.raises(pa.errors.SchemaError):
+        with pytest.raises(SchemaError):
             SidraSchema.validate(df)
 
 
@@ -124,7 +124,7 @@ class TestZarcSchema:
         df = pd.DataFrame({
             "cod_municipio_ibge": [1200013],
         })
-        with pytest.raises(pa.errors.SchemaError):
+        with pytest.raises(SchemaError):
             ZarcSchema.validate(df)
 
 
@@ -145,7 +145,7 @@ class TestAgrofitSchema:
             "nr_registro": ["12321"],
             "marca_comercial": ["MATA TUDO"],
         })
-        with pytest.raises(pa.errors.SchemaError):
+        with pytest.raises(SchemaError):
             AgrofitSchema.validate(df)
 
 
@@ -166,7 +166,7 @@ class TestCultivaresSchema:
         df = pd.DataFrame({
             "cultura": ["soja"],
         })
-        with pytest.raises(pa.errors.SchemaError):
+        with pytest.raises(SchemaError):
             CultivaresSchema.validate(df)
 
 
@@ -200,7 +200,7 @@ class TestSigefProducaoSchema:
             "cultura": ["soja"],
             "area_ha": [-50.0],
         })
-        with pytest.raises(pa.errors.SchemaError):
+        with pytest.raises(SchemaError):
             SigefProducaoSchema.validate(df)
 
 
@@ -233,18 +233,18 @@ class TestOpenMeteoSchema:
             "id_municipio": [1],
             "temp_max_c": [35.0],
         })
-        with pytest.raises(pa.errors.SchemaError):
+        with pytest.raises(SchemaError):
             OpenMeteoSchema.validate(df)
 
 
-# Validação com BaseSource.validate()
+# Validation with BaseSource.validate()
 
 class TestBaseSourceValidate:
     def test_validate_passthrough_no_schema(self):
         """Se schema=None, validate() retorna o DataFrame sem alterar."""
         from pipeline.base import BaseSource
 
-        # Classe concreta mínima para testar
+        # Minimal concrete class for testing
         class DummySource(BaseSource):
             def extract(self, **kw): return pd.DataFrame()
             def clean(self, raw): return raw
@@ -256,7 +256,7 @@ class TestBaseSourceValidate:
         assert result.equals(df)
 
     def test_validate_empty_dataframe(self):
-        """DataFrame vazio é aceito sem validação."""
+        """An empty DataFrame is accepted without validation."""
         from pipeline.base import BaseSource
 
         class DummySource(BaseSource):
@@ -270,7 +270,7 @@ class TestBaseSourceValidate:
         assert result.empty
 
     def test_validate_with_schema_passes(self):
-        """DataFrame válido passa validação via BaseSource."""
+        """A valid DataFrame passes validation through BaseSource."""
         from pipeline.base import BaseSource
 
         class DummySource(BaseSource):
@@ -289,7 +289,7 @@ class TestBaseSourceValidate:
         assert not result.empty
 
     def test_validate_with_schema_fails(self):
-        """DataFrame inválido levanta SchemaErrors via BaseSource."""
+        """An invalid DataFrame raises SchemaErrors through BaseSource."""
         from pipeline.base import BaseSource
 
         class DummySource(BaseSource):
@@ -303,5 +303,5 @@ class TestBaseSourceValidate:
             "nr_registro": ["123"],
             # Missing 'cultura' — required column
         })
-        with pytest.raises(pa.errors.SchemaErrors):
+        with pytest.raises(SchemaErrors):
             source.validate(df)

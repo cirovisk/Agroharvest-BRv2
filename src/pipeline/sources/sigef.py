@@ -1,4 +1,4 @@
-"""Pipeline SIGEF: Controle da Produção de Sementes e Mudas (MAPA)."""
+"""SIGEF pipeline: seed and seedling production control (MAPA)."""
 
 import io
 import logging
@@ -34,7 +34,7 @@ class SigefPipeline(BaseSource):
         return None
 
     def _http_config(self) -> dict:
-        # Habilita fallback SSL para resolver problemas frequentes com servidores do MAPA
+        # Enable SSL fallback to handle frequent issues with MAPA servers
         return {"ssl_fallback": True}
 
     def __init__(self, data_dir="data/sigef", use_cache=True):
@@ -77,7 +77,7 @@ class SigefPipeline(BaseSource):
         processed = {}
         if "campos_producao" in dataframes:
             processed["campos_producao"] = self._clean_producao(dataframes["campos_producao"])
-        # Suporte a fontes de dados com chaves variadas ('reserva_semente' ou 'uso_proprio').
+        # Support data sources with varied keys ('reserva_semente' or 'uso_proprio').
         reserva_df = (
             dataframes.get("reserva_semente") if "reserva_semente" in dataframes else dataframes.get("uso_proprio")
         )
@@ -90,7 +90,7 @@ class SigefPipeline(BaseSource):
             return df
         df = df.copy()
 
-        # Mapeamento atualizado conforme inspeção dos dados brutos (dados.agricultura.gov.br)
+        # Mapping updated after inspecting raw data (dados.agricultura.gov.br)
         renames = {
             "Safra": "safra",
             "Especie": "especie",
@@ -121,7 +121,7 @@ class SigefPipeline(BaseSource):
         df.columns = [c.strip() for c in df.columns]
         df = df.rename(columns=renames)
 
-        # Tipagem e Limpeza de Números
+        # Number typing and cleaning
         num_cols = ["area_ha", "producao_bruta_t", "producao_est_t"]
         for col in num_cols:
             if col in df.columns:
@@ -132,7 +132,7 @@ class SigefPipeline(BaseSource):
             if col in df.columns:
                 df[col] = pd.to_datetime(df[col], dayfirst=True, errors="coerce")
 
-        # Criação da coluna 'cultura' para mapeamento com a dimensão
+        # Create the 'cultura' column for dimension mapping
         if "especie" in df.columns:
             df["cultura"] = normalize_string(df["especie"])
         elif "Especie" in df.columns:

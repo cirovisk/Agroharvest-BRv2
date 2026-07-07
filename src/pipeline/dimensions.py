@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 
 
 def init_dimensions(conn):
-    """Cria tabelas de dimensão no DuckDB se não existirem."""
+    """Create DuckDB dimension tables if they do not exist."""
     conn.execute("""
         CREATE SEQUENCE IF NOT EXISTS seq_cultura;
         CREATE TABLE IF NOT EXISTS dim_cultura (

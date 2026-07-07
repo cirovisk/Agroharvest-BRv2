@@ -1,11 +1,11 @@
 """
-Contrato base para todos os pipelines de fonte de dados.
-Cada source DEVE implementar extract(), clean() e load().
+Base contract for all data-source pipelines.
+Each source MUST implement extract(), clean(), and load().
 
-Funcionalidades herdadas:
-  - self.http: Cliente HTTP resiliente com retries e backoff exponencial
-  - self.validate(): Validação de schema Pandera após o clean()
-  - self.save_parquet(): Helper para salvar DataFrames em Parquet
+Inherited features:
+  - self.http: resilient HTTP client with retries and exponential backoff
+  - self.validate(): Pandera schema validation after clean()
+  - self.save_parquet(): helper to save DataFrames as Parquet
 """
 
 import logging
@@ -13,17 +13,17 @@ import os
 import time
 from abc import ABC, abstractmethod
 
-import pandera as pa
+from pandera.errors import SchemaErrors
 
 from pipeline.http_client import ResilientHTTPClient
 from pipeline.parquet_utils import save_as_parquet
 
 
 class BaseSource(ABC):
-    """Interface que toda fonte de dados deve seguir."""
+    """Interface every data source must follow."""
 
-    # Subclasses podem sobrescrever para customizar o schema de validação.
-    # Se None, a validação é pulada (pass-through).
+    # Subclasses may override this to customize the validation schema.
+    # If None, validation is skipped (pass-through).
     schema = None
 
     def __init__(self):
@@ -33,8 +33,8 @@ class BaseSource(ABC):
     @property
     def http(self) -> ResilientHTTPClient:
         """
-        Cliente HTTP resiliente, criado sob demanda (lazy).
-        Subclasses podem sobrescrever _http_config() para customizar.
+        Resilient HTTP client, created lazily.
+        Subclasses may override _http_config() to customize it.
         """
         if self._http is None:
             self._http = ResilientHTTPClient(**self._http_config())
@@ -42,43 +42,43 @@ class BaseSource(ABC):
 
     def _http_config(self) -> dict:
         """
-        Configuração do cliente HTTP. Override para customizar por fonte.
-        Ex: Agrofit precisa de timeout=300, MAPA precisa de ssl_fallback=True.
+        HTTP client configuration. Override to customize per source.
+        Example: Agrofit needs timeout=300, MAPA needs ssl_fallback=True.
         """
         return {}
 
     def save_parquet(self, df, table_name, **kwargs):
-        """Helper para salvar DataFrames em Parquet com Brotli."""
+        """Helper to save DataFrames as Parquet with Brotli."""
         return save_as_parquet(df, table_name, **kwargs)
 
     @abstractmethod
     def extract(self, **kwargs):
-        """Extrai dados brutos da fonte. Retorna DataFrame, dict, ou generator."""
+        """Extract raw data from the source. Returns a DataFrame, dict, or generator."""
         ...
 
     @abstractmethod
     def clean(self, raw_data):
-        """Limpa e padroniza os dados brutos."""
+        """Clean and standardize raw data."""
         ...
 
     @abstractmethod
     def load(self, clean_data, lookups: dict):
-        """Carrega dados limpos no banco via upsert."""
+        """Load clean data into the database through upsert."""
         ...
 
     def validate(self, df, schema=None):
         """
-        Valida um DataFrame contra um schema Pandera.
+        Validate a DataFrame against a Pandera schema.
 
         Args:
-            df: DataFrame a validar
-            schema: Schema Pandera (se None, usa self.schema)
+            df: DataFrame to validate
+            schema: Pandera schema (if None, uses self.schema)
 
         Returns:
-            DataFrame validado (potencialmente com tipos coercidos)
+            Validated DataFrame (potentially with coerced types)
 
         Raises:
-            pandera.errors.SchemaErrors: Se a validação falhar
+            pandera.errors.SchemaErrors: If validation fails
         """
         effective_schema = schema or self.schema
         if effective_schema is None or df.empty:
@@ -88,7 +88,7 @@ class BaseSource(ABC):
             validated = effective_schema.validate(df, lazy=True)
             self.log.info(f"✓ Schema '{effective_schema.name or 'unnamed'}' validado: {len(df)} linha(s) OK.")
             return validated
-        except pa.errors.SchemaErrors as e:
+        except SchemaErrors as e:
             self.log.error(
                 f"✗ Validação de schema falhou ({effective_schema.name or 'unnamed'}):\n"
                 f"  Falhas encontradas:\n{e.failure_cases.to_string()}"
@@ -101,9 +101,9 @@ class BaseSource(ABC):
         raw = self.extract(**kwargs)
         clean = self.clean(raw)
 
-        # Validação de schema (se definido)
+        # Schema validation (if defined)
         if isinstance(clean, dict):
-            # Sources com múltiplos DataFrames (CONAB, SIGEF)
+            # Sources with multiple DataFrames (CONAB, SIGEF)
             for key, df in clean.items():
                 if hasattr(self, "_get_schema_for_key"):
                     sub_schema = self._get_schema_for_key(key)

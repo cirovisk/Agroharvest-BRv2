@@ -1,35 +1,35 @@
-# AgroHarvest BR - Arquitetura e Modelagem Lakehouse
+# AgroHarvest BR - Lakehouse Architecture and Modeling
 
-Este documento detalha a estrutura de dados e o fluxo de informações do projeto AgroHarvest BR, agora operando sob o paradigma de **Data Lakehouse**.
+This document details the data structure and information flow of the AgroHarvest BR project, now operating under the **Data Lakehouse** paradigm.
 
-## 1. Modelo de Dados (Star Schema)
+## 1. Data Model (Star Schema)
 
-Embora o armazenamento físico seja feito em arquivos **Apache Parquet**, o modelo lógico segue um **Star Schema (Esquema Estrela)**. O DuckDB atua como o motor que provê uma interface SQL sobre esses arquivos, garantindo integridade referencial nas dimensões e performance analítica nos fatos.
+Although physical storage is implemented with **Apache Parquet** files, the logical model follows a **Star Schema**. DuckDB acts as the engine that provides a SQL interface over those files, guaranteeing referential integrity in dimensions and analytical performance over facts.
 
 ```mermaid
 erDiagram
-    DIM-CULTURA ||--o{ FATO-CULTIVAR : "possui"
-    DIM-CULTURA ||--o{ FATO-PAM : "produz"
-    DIM-CULTURA ||--o{ FATO-ZARC : "risco"
-    DIM-CULTURA ||--o{ FATO-CONAB : "estimativa"
-    DIM-CULTURA ||--o{ FATO-AGROFIT : "insumos"
-    DIM-CULTURA ||--o{ FATO-SIGEF : "sementes"
+    DIM-CULTURA ||--o{ FATO-CULTIVAR : "has"
+    DIM-CULTURA ||--o{ FATO-PAM : "produces"
+    DIM-CULTURA ||--o{ FATO-ZARC : "risk"
+    DIM-CULTURA ||--o{ FATO-CONAB : "estimate"
+    DIM-CULTURA ||--o{ FATO-AGROFIT : "inputs"
+    DIM-CULTURA ||--o{ FATO-SIGEF : "seeds"
     
-    DIM-MUNICIPIO ||--o{ FATO-PAM : "localização"
-    DIM-MUNICIPIO ||--o{ FATO-ZARC : "localização"
-    DIM-MUNICIPIO ||--o{ FATO-METEOROLOGIA : "clima"
-    DIM-MUNICIPIO ||--o{ FATO-FERTILIZANTES : "estabelecimentos"
-    DIM-MUNICIPIO ||--o{ FATO-SIGEF : "localização"
-    DIM-MUNICIPIO ||--o{ FATO-NDVI : "satélite"
+    DIM-MUNICIPIO ||--o{ FATO-PAM : "location"
+    DIM-MUNICIPIO ||--o{ FATO-ZARC : "location"
+    DIM-MUNICIPIO ||--o{ FATO-METEOROLOGIA : "weather"
+    DIM-MUNICIPIO ||--o{ FATO-FERTILIZANTES : "establishments"
+    DIM-MUNICIPIO ||--o{ FATO-SIGEF : "location"
+    DIM-MUNICIPIO ||--o{ FATO-NDVI : "satellite"
     
-    DIM-MANTENEDOR ||--o{ FATO-CULTIVAR : "mantém"
+    DIM-MANTENEDOR ||--o{ FATO-CULTIVAR : "maintains"
 
     DIM-CULTURA {
-        int id_cultura PK "Persistido em DuckDB"
+        int id_cultura PK "Persisted in DuckDB"
         string nome_padronizado
     }
     DIM-MUNICIPIO {
-        int id_municipio PK "Persistido em DuckDB"
+        int id_municipio PK "Persisted in DuckDB"
         string codigo_ibge
         string nome
         string uf
@@ -51,13 +51,13 @@ erDiagram
     }
 ```
 
-## 2. Fluxo de Dados (Lakehouse Engine)
+## 2. Data Flow (Lakehouse Engine)
 
-O pipeline utiliza o **Registry Pattern** para ingestão e o **DuckDB** para a camada de serviço. Os dados são extraídos, limpos e salvos em formato colunar (Parquet) com compressão **Brotli**, otimizando o I/O e o custo de storage.
+The pipeline uses the **Registry Pattern** for ingestion and **DuckDB** for the service layer. Data is extracted, cleaned, and saved in columnar format (Parquet) with **Brotli** compression, optimizing I/O and storage cost.
 
 ```mermaid
 graph LR
-    subgraph "Fontes Externas"
+    subgraph "External Sources"
         MAPA["MAPA APIs/CSVs"]
         IBGE["IBGE (SIDRA)"]
         OM["Open-Meteo"]
@@ -76,7 +76,7 @@ graph LR
         STG[("data/storage/*.parquet")]
     end
 
-    subgraph "Consumo"
+    subgraph "Consumption"
         API["FastAPI (SQL)"]
         MB["Metabase"]
     end
@@ -97,12 +97,12 @@ graph LR
     API --> MB
 ```
 
-## 3. Benefícios da Arquitetura Atual
+## 3. Benefits of the Current Architecture
 
-1.  **Storage Colunar:** Os fatos (milhões de linhas) são armazenados em Parquet, permitindo que o DuckDB leia apenas as colunas necessárias para cada query, reduzindo drasticamente o uso de memória.
-2.  **Zero-Latency Service:** Como o DuckDB roda dentro do mesmo processo da API, não há latência de rede entre o servidor de aplicação e o banco de dados.
-3.  **Portabilidade (Cloud Native):** O repositório `data/storage` pode ser montado como um volume em qualquer nuvem (OCI, AWS, Azure) sem necessidade de serviços de banco de dados gerenciados caros.
-4.  **Escalabilidade Horizontal de Leitura:** Várias instâncias da API podem ler os mesmos arquivos Parquet simultaneamente de forma eficiente.
+1.  **Columnar Storage:** Facts with millions of rows are stored in Parquet, allowing DuckDB to read only the columns required for each query and drastically reduce memory usage.
+2.  **Zero-Latency Service:** Because DuckDB runs inside the same process as the API, there is no network latency between the application server and the database.
+3.  **Portability (Cloud Native):** The `data/storage` repository can be mounted as a volume in any cloud (OCI, AWS, Azure) without expensive managed database services.
+4.  **Horizontal Read Scalability:** Multiple API instances can efficiently read the same Parquet files simultaneously.
 
 ---
-*Documentação atualizada para a fase de Modernização Lakehouse do AgroHarvest BR.*
+*Documentation updated for the AgroHarvest BR Lakehouse modernization phase.*

@@ -59,7 +59,7 @@ class ResilientHTTPClient:
         if headers:
             self._session.headers.update(headers)
 
-        # Configura o adapter do urllib3 com pool de conexões
+        # Configure the urllib3 adapter with connection pooling
         adapter = HTTPAdapter(
             pool_connections=10,
             pool_maxsize=10,
@@ -73,7 +73,7 @@ class ResilientHTTPClient:
         return min(delay, self.backoff_max)
 
     def _is_retryable(self, exc: Exception | None = None, status_code: int | None = None) -> bool:
-        """Determina se o erro é transiente e merece retry."""
+        """Determine whether the error is transient and should be retried."""
         if exc is not None:
             return isinstance(
                 exc,
@@ -125,7 +125,7 @@ class ResilientHTTPClient:
                     **kwargs,
                 )
 
-                # Se o status é retryável e ainda temos tentativas, tenta novamente
+                # If the status is retryable and attempts remain, try again
                 if self._is_retryable(status_code=response.status_code) and attempt < self.max_retries:
                     delay = self._calc_delay(attempt)
                     log.warning(
@@ -136,14 +136,14 @@ class ResilientHTTPClient:
                     time.sleep(delay)
                     continue
 
-                # Se o status é retryável mas esgotamos as tentativas, levanta o erro
+                # If the status is retryable but attempts are exhausted, raise the error
                 response.raise_for_status()
                 return response
 
             except requests.exceptions.SSLError as ssl_err:
                 if self.ssl_fallback and verify:
                     log.warning(f"SSL falhou para {url}: {ssl_err}. Retentando sem verificação SSL...")
-                    # Tenta uma vez sem SSL (não conta como retry normal)
+                    # Try once without SSL (does not count as a normal retry)
                     import urllib3
 
                     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -169,7 +169,7 @@ class ResilientHTTPClient:
                     log.error(f"Falha definitiva após {self.max_retries + 1} tentativa(s) em {url}: {e}")
 
             except requests.exceptions.RequestException as e:
-                # Erros não-retryáveis (ex: InvalidURL)
+                # Non-retryable errors (for example, InvalidURL)
                 last_exception = e
                 break
 

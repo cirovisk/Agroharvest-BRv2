@@ -1,26 +1,26 @@
-# Pipeline: Produção Agrícola Municipal (PAM/SIDRA)
+# Pipeline: Municipal Agricultural Production (PAM/SIDRA)
 
-Extração de dados de produção agrícola das lavouras temporárias através da API v3 do IBGE SIDRA com persistência em **Parquet**.
+Extraction of agricultural production data for temporary crops through the IBGE SIDRA v3 API with **Parquet** persistence.
 
-## 📌 Fonte de Dados
-- **Agregado:** Tabela 1612 (Produção Agrícola Municipal - Lavouras temporárias)
+## 📌 Data Source
+- **Aggregate:** Table 1612 (Municipal Agricultural Production - temporary crops)
 - **API:** [SIDRA API](https://apisidra.ibge.gov.br/)
-- **Granularidade:** Municipal (Nível 6) e Cultura (C81).
+- **Granularity:** Municipality (level 6) and crop (C81).
 
-## 🛠️ Processo de Extração
-1.  **Metadados Dinâmicos:** O pipeline consulta os metadados da Tabela 1612 para buscar os IDs dinâmicos de cada cultura.
-2.  **Requests Paralelos:** Para acelerar a ingestão, o pipeline realiza chamadas assíncronas para cada cultura solicitando área plantada, colhida e produção total.
-3.  **Deduplicação:** O processo garante que combinações duplicadas de (Município, Cultura, Ano) sejam tratadas antes da persistência.
+## 🛠️ Extraction Process
+1.  **Dynamic Metadata:** The pipeline queries the metadata for Table 1612 to retrieve the dynamic IDs for each crop.
+2.  **Parallel Requests:** To speed up ingestion, the pipeline performs asynchronous calls for each crop requesting planted area, harvested area, and total production.
+3.  **Deduplication:** The process ensures that duplicate combinations of (municipality, crop, year) are handled before persistence.
 
-## 🔄 Transformações (Cleaners)
-- **Normalização:** Mapeamento de códigos SIDRA (D2N, V, D1C) para nomes amigáveis.
-- **Pivoteamento:** Transformação de variáveis (Linhas API) em colunas de métricas.
-- **Data Types:** Garantia de que valores financeiros e produtivos sejam `float64`.
+## 🔄 Transformations (Cleaners)
+- **Normalization:** Maps SIDRA codes (D2N, V, D1C) to friendly names.
+- **Pivoting:** Transforms variables from API rows into metric columns.
+- **Data Types:** Ensures that financial and production values are `float64`.
 
-## 💾 Armazenamento Lakehouse
-- **Formato:** Apache Parquet.
-- **Local:** `data/storage/fato_producao_pam/data.parquet`.
-- **Engine de Serviço:** DuckDB (lê o diretório como uma tabela externa).
+## 💾 Lakehouse Storage
+- **Format:** Apache Parquet.
+- **Location:** `data/storage/fato_producao_pam/data.parquet`.
+- **Service Engine:** DuckDB, which reads the directory as an external table.
 
 ---
-*Escalável para séries históricas de décadas de produção agrícola.*
+*Scalable for historical series spanning decades of agricultural production.*

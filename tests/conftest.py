@@ -13,13 +13,13 @@ from db.duck_manager import duck_db
 
 @pytest.fixture(scope="function")
 def duck_conn():
-    """Conexão DuckDB em memória para testes."""
+    """In-memory DuckDB connection for tests."""
     conn = duckdb.connect(database=":memory:")
-    # Inicializa dimensões
+    # Initialize dimensions
     from pipeline.dimensions import init_dimensions
     init_dimensions(conn)
     
-    # Inicializa tabelas de fatos mockadas para os testes rodarem
+    # Initialize mocked fact tables so tests can run
     conn.execute("""
         CREATE TABLE IF NOT EXISTS fato_producao_pam (
             ano INTEGER,
@@ -94,11 +94,11 @@ def duck_conn():
 
 @pytest.fixture(autouse=True)
 def mock_duck_db(duck_conn):
-    """Sobrescreve a conexão do singleton duck_db para usar o banco de testes."""
+    """Override the duck_db singleton connection to use the test database."""
     original_conn = duck_db.conn
     duck_db.conn = duck_conn
-    # Refresh views no banco de memória (caso existam arquivos parquet em data/storage)
-    # Na verdade em testes o storage costuma estar vazio ou mockado.
+    # Refresh views in the in-memory database if Parquet files exist in data/storage.
+    # In tests, storage is usually empty or mocked.
     duck_db.refresh_views()
     yield
     duck_db.conn = original_conn

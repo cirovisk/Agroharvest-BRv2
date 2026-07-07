@@ -18,7 +18,7 @@ from pipeline.http_client import ResilientHTTPClient
 
 @pytest.fixture
 def client():
-    """Cliente com retry rápido para testes (backoff mínimo)."""
+    """Client with fast retries for tests (minimum backoff)."""
     return ResilientHTTPClient(
         max_retries=3,
         backoff_base=0.01,  # 10ms para testes rápidos
@@ -138,11 +138,11 @@ class TestRetryBehavior:
         assert mock_req.call_count == 2
 
 
-# Exaustão de Retries
+# Retry Exhaustion
 
 class TestRetryExhaustion:
     def test_raises_after_max_retries_connection(self, client):
-        """ConnectionError persistente: levanta após esgotar retries."""
+        """Persistent ConnectionError: raises after retries are exhausted."""
         with patch.object(
             client._session, "request",
             side_effect=requests.exceptions.ConnectionError("always fail")
@@ -151,7 +151,7 @@ class TestRetryExhaustion:
                 client.get("https://api.gov.br/data")
 
     def test_raises_after_max_retries_timeout(self, client):
-        """Timeout persistente: levanta após esgotar retries."""
+        """Persistent timeout: raises after retries are exhausted."""
         with patch.object(
             client._session, "request",
             side_effect=requests.exceptions.Timeout("always timeout")
@@ -160,7 +160,7 @@ class TestRetryExhaustion:
                 client.get("https://api.gov.br/data")
 
     def test_raises_after_max_retries_500(self, client):
-        """HTTP 500 persistente: levanta HTTPError após esgotar retries."""
+        """Persistent HTTP 500: raises HTTPError after retries are exhausted."""
         resp_500 = MagicMock(spec=requests.Response)
         resp_500.status_code = 500
         resp_500.raise_for_status = MagicMock(
@@ -175,11 +175,11 @@ class TestRetryExhaustion:
                 client.get("https://api.gov.br/data")
 
 
-# Erros Não-Retryáveis
+# Non-Retryable Errors
 
 class TestNonRetryableErrors:
     def test_invalid_url_no_retry(self, client):
-        """InvalidURL não é retryável — falha imediatamente."""
+        """InvalidURL is not retryable; it fails immediately."""
         with patch.object(
             client._session, "request",
             side_effect=requests.exceptions.InvalidURL("bad url")
@@ -190,7 +190,7 @@ class TestNonRetryableErrors:
         assert mock_req.call_count == 1
 
     def test_404_no_retry(self, client):
-        """HTTP 404 não está na lista de retryable — levanta na primeira."""
+        """HTTP 404 is not in the retryable list; it raises on the first attempt."""
         resp_404 = MagicMock(spec=requests.Response)
         resp_404.status_code = 404
         resp_404.raise_for_status = MagicMock(
@@ -214,7 +214,7 @@ class TestBackoffTiming:
         assert client._calc_delay(2) == pytest.approx(0.04, rel=0.1)  # base * 2^2 = 0.04
 
     def test_backoff_cap(self):
-        """Verifica que o delay não excede backoff_max."""
+        """Verify that delay does not exceed backoff_max."""
         client = ResilientHTTPClient(backoff_base=2.0, backoff_factor=2.0, backoff_max=10.0)
         assert client._calc_delay(0) == 2.0   # 2.0 * 2^0 = 2.0
         assert client._calc_delay(1) == 4.0   # 2.0 * 2^1 = 4.0
@@ -227,7 +227,7 @@ class TestBackoffTiming:
 
 class TestSSLFallback:
     def test_ssl_fallback_retries_without_verify(self, client_ssl):
-        """SSL error com fallback habilitado retenta sem verificação."""
+        """SSL error with fallback enabled retries without verification."""
         resp_200 = MagicMock(spec=requests.Response)
         resp_200.status_code = 200
 
@@ -259,7 +259,7 @@ class TestSSLFallback:
 
 class TestDownload:
     def test_download_saves_file(self, client, tmp_path):
-        """Download salva conteúdo corretamente no arquivo."""
+        """Download saves content correctly to the file."""
         mock_response = MagicMock(spec=requests.Response)
         mock_response.status_code = 200
         mock_response.iter_content = MagicMock(return_value=[b"chunk1", b"chunk2"])
@@ -275,11 +275,11 @@ class TestDownload:
             assert f.read() == b"chunk1chunk2"
 
 
-# Configuração Customizada
+# Custom Configuration
 
 class TestCustomConfig:
     def test_custom_timeout(self):
-        """Timeout customizado é usado na requisição."""
+        """Custom timeout is used in the request."""
         client = ResilientHTTPClient(timeout=120)
         mock_response = MagicMock(spec=requests.Response)
         mock_response.status_code = 200
@@ -303,7 +303,7 @@ class TestCustomConfig:
         assert kwargs["timeout"] == 300
 
     def test_custom_headers(self):
-        """Headers customizados são aplicados na sessão."""
+        """Custom headers are applied to the session."""
         headers = {"User-Agent": "AgroHarvest/1.0"}
         client = ResilientHTTPClient(headers=headers)
         assert client._session.headers["User-Agent"] == "AgroHarvest/1.0"

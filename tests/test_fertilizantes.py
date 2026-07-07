@@ -7,7 +7,7 @@ from src.pipeline.sources.fertilizantes import FertilizantesPipeline
 
 @pytest.fixture
 def mock_fertilizantes_csv():
-    # Retorna conteúdo CSV simulando o SIPEAGRO
+    # Return CSV content simulating SIPEAGRO
     lines = [
         "UNIDADE_DA_FEDERACAO;MUNICIPIO;NUMERO_REGISTRO_ESTABELECIMENTO;STATUS_DO_REGISTRO;CNPJ;RAZAO_SOCIAL;NOME_FANTASIA;AREA_ATUACAO;ATIVIDADE;CLASSIFICACAO",
         "MT;Sorriso ;MT-000123-4;Ativo;12.345.678/0001-90;AGRO LTDA ;Agro Fantasia;Fertilizantes;Produtor;Comerciante",
@@ -36,7 +36,7 @@ def test_fertilizantes_extract(tmp_path, mock_fertilizantes_csv):
 
 def test_fertilizantes_clean():
     pipeline = FertilizantesPipeline()
-    # Usa astype(object) para garantir tipo object nas colunas de string
+    # Use astype(object) to ensure object type in string columns
     raw_df = pd.DataFrame({
         "UNIDADE_DA_FEDERACAO": ["MT ", " SP"],
         "MUNICIPIO": ["Sorriso", "Campinas "],
@@ -78,7 +78,7 @@ def test_fertilizantes_load():
         "municipios_nome": {("sorriso", "MT"): 10}
     }
     
-    # Mockando save_parquet no pipeline para evitar gravação física
+    # Mock save_parquet on the pipeline to avoid physical writes
     with patch.object(pipeline, "save_parquet", return_value="data/storage/fato_fertilizantes_estabelecimentos/data.parquet") as mock_save:
         res = pipeline.load(clean_df, lookups)
         

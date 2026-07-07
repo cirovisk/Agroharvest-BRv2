@@ -1,37 +1,37 @@
-# Metadados do Lakehouse - AgroHarvest BR
+# Lakehouse Metadata - AgroHarvest BR
 
-Este documento descreve a estrutura de dados do projeto **AgroHarvest BR**, que utiliza uma arquitetura **Lakehouse** baseada em **DuckDB** (para dimensões e metadados) e **Apache Parquet** (para tabelas fato de alta volumetria).
+This document describes the data structure of **AgroHarvest BR**, which uses a **Lakehouse** architecture based on **DuckDB** for dimensions and metadata, and **Apache Parquet** for high-volume fact tables.
 
-## 🏗️ Arquitetura de Dados
+## 🏗️ Data Architecture
 
-O ecossistema de dados é organizado em um modelo **Star Schema** (Modelo Estrela), otimizado para consultas analíticas (OLAP).
+The data ecosystem is organized as a **Star Schema**, optimized for analytical queries (OLAP).
 
-- **Dimensões:** Armazenadas no arquivo persistente `data/storage/cultivares.duckdb`.
-- **Fatos:** Armazenadas como arquivos Parquet comprimidos com **Brotli** no diretório `data/storage/`.
+- **Dimensions:** Stored in the persistent `data/storage/cultivares.duckdb` file.
+- **Facts:** Stored as **Brotli**-compressed Parquet files in the `data/storage/` directory.
 
 ---
 
-## 📐 Dimensões (Persistidas em DuckDB)
+## 📐 Dimensions (Persisted in DuckDB)
 
-As dimensões são pequenas e servem para garantir a integridade referencial e facilitar filtros na API.
+Dimensions are small and are used to guarantee referential integrity and simplify API filters.
 
 ### `dim_cultura`
-Padronização de nomes de culturas (soja, milho, trigo, etc).
-- `id_cultura` (INTEGER): Chave primária (Sequence).
-- `nome_padronizado` (VARCHAR): Nome único em snake_case.
+Standardized crop names (soybean, corn, wheat, and so on).
+- `id_cultura` (INTEGER): Primary key (sequence).
+- `nome_padronizado` (VARCHAR): Unique name in snake_case.
 
 ### `dim_municipio`
-Base de municípios brasileiros (IBGE).
-- `id_municipio` (INTEGER): Chave primária.
-- `codigo_ibge` (VARCHAR): Código de 7 dígitos.
-- `nome` (VARCHAR): Nome oficial.
-- `uf` (VARCHAR): Sigla do estado.
+Brazilian municipality base (IBGE).
+- `id_municipio` (INTEGER): Primary key.
+- `codigo_ibge` (VARCHAR): Seven-digit code.
+- `nome` (VARCHAR): Official name.
+- `uf` (VARCHAR): State abbreviation.
 
 ---
 
-## 📊 Fatos (Armazenadas em Parquet)
+## 📊 Facts (Stored in Parquet)
 
-As tabelas fato contêm os indicadores volumétricos. Elas são lidas pelo DuckDB como `External Tables` via padrão globbing (`*.parquet`).
+Fact tables contain volume indicators. DuckDB reads them as external tables through globbing patterns (`*.parquet`).
 
 ### `fato_registro_cultivares` (Fonte: MAPA/SNPC)
 - Local: `data/storage/fato_registro_cultivares/data.parquet`
@@ -42,7 +42,7 @@ As tabelas fato contêm os indicadores volumétricos. Elas são lidas pelo DuckD
 - Campos: `id_cultura`, `id_municipio`, `ano`, `area_plantada_ha`, `qtde_produzida_ton`, `valor_producao_mil_reais`.
 
 ### `fato_risco_zarc` (Fonte: MAPA/ZARC)
-- Local: `data/storage/fato_risco_zarc/data_{cultura}.parquet` (Particionado por cultura)
+- Local: `data/storage/fato_risco_zarc/data_{cultura}.parquet` (partitioned by crop)
 - Campos: `id_cultura`, `id_municipio`, `tipo_solo`, `periodo_plantio`, `risco_climatico`.
 
 ### `fato_producao_conab` (Fonte: CONAB)
@@ -59,18 +59,18 @@ As tabelas fato contêm os indicadores volumétricos. Elas são lidas pelo DuckD
 
 ---
 
-## ⚙️ Especificações Técnicas (OLAP Optimization)
+## ⚙️ Technical Specifications (OLAP Optimization)
 
-1.  **Formato de Armazenamento:** Apache Parquet (v2.6).
-2.  **Compressão:** `Brotli` (Nível 4) para o melhor balanço entre taxa de compressão e velocidade de descompressão.
-3.  **Engine de Query:** [DuckDB](https://duckdb.org/).
-    - Consultas são executadas via **Vectored Execution engine**.
-    - Suporte nativo a **Predicate Pushdown** (lê apenas os filtros necessários do Parquet).
-    - Suporte a **Projection Pushdown** (lê apenas as colunas solicitadas).
+1.  **Storage Format:** Apache Parquet (v2.6).
+2.  **Compression:** `Brotli` (level 4) for the best balance between compression ratio and decompression speed.
+3.  **Query Engine:** [DuckDB](https://duckdb.org/).
+    - Queries run through the **Vectored Execution engine**.
+    - Native support for **Predicate Pushdown**, reading only the required filters from Parquet.
+    - Native support for **Projection Pushdown**, reading only the requested columns.
 
-## 🔄 Freshness e Auditoria
+## 🔄 Freshness and Auditing
 
-Diferente de um banco SQL tradicional, a auditoria é feita pelo timestamp dos arquivos no sistema de arquivos. O pipeline de ingestão sobrescreve os arquivos em cada carga completa, garantindo que a API sempre sirva a "versão mais fresca" disponível no Lakehouse.
+Unlike a traditional SQL database, auditing is based on file timestamps in the filesystem. The ingestion pipeline overwrites files on each full load, ensuring the API always serves the freshest available Lakehouse version.
 
 ---
-*Este dicionário de dados reflete a modernização para a stack DuckDB + Parquet.*
+*This data dictionary reflects the modernization to the DuckDB + Parquet stack.*

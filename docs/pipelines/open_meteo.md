@@ -1,26 +1,26 @@
-# Pipeline: Open-Meteo (Meteorologia)
+# Pipeline: Open-Meteo (Weather)
 
-Extração e consolidação de dados climáticos e meteorológicos históricos via API global com persistência colunar.
+Extraction and consolidation of historical climate and weather data through a global API with columnar persistence.
 
-## 📌 Fonte de Dados
-- **Agência:** Open-Meteo.
-- **Origem:** [Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api).
-- **Cobertura:** 100% dos 5570 municípios brasileiros (via interpolação de modelos globais).
+## 📌 Data Source
+- **Agency:** Open-Meteo.
+- **Origin:** [Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api).
+- **Coverage:** 100% of the 5,570 Brazilian municipalities through global model interpolation.
 
-## 🛠️ Processo de Extração
-1.  **Geocodificação:** Mapeamento de Latitude/Longitude para cada `id_municipio` do DuckDB.
-2.  **Paralelismo:** Requisições assíncronas via `ThreadPoolExecutor` para maximizar o throughput de rede.
-3.  **Cache Local:** Persistência temporária de coordenadas para evitar chamadas de geocodificação repetitivas.
+## 🛠️ Extraction Process
+1.  **Geocoding:** Maps latitude/longitude for each DuckDB `id_municipio`.
+2.  **Parallelism:** Asynchronous requests through `ThreadPoolExecutor` to maximize network throughput.
+3.  **Local Cache:** Temporarily persists coordinates to avoid repeated geocoding calls.
 
-## 💾 Armazenamento Lakehouse
-- **Formato:** Parquet.
-- **Local:** `data/storage/fato_meteorologia/data.parquet`.
-- **Diferencial:** O DuckDB permite joins espaciais e temporais ultra-rápidos entre o clima (Meteorologia) e a produção (PAM), permitindo identificar quebras de safra por seca ou geada em milissegundos.
+## 💾 Lakehouse Storage
+- **Format:** Parquet.
+- **Location:** `data/storage/fato_meteorologia/data.parquet`.
+- **Differentiator:** DuckDB enables ultra-fast spatial and temporal joins between weather data and production data (PAM), making it possible to identify yield losses caused by drought or frost in milliseconds.
 
-## 🔄 Indicadores Extraídos
-- **Precipitação Total (mm)**
-- **Temperaturas (Max, Min, Média)**
-- **Umidade Relativa** (Quando disponível)
+## 🔄 Extracted Indicators
+- **Total precipitation (mm)**
+- **Temperatures (max, min, average)**
+- **Relative humidity** when available
 
 ---
-*Dados climáticos fundamentais para modelos de machine learning e análise de risco ZARC.*
+*Climate data is fundamental for machine learning models and ZARC risk analysis.*

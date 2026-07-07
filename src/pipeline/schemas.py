@@ -10,8 +10,7 @@ Uso:
     schema.validate(df, lazy=True)  # lazy=True coleta TODOS os erros
 """
 
-import pandera as pa
-from pandera import Check, Column, DataFrameSchema
+from pandera.pandas import Check, Column, DataFrameSchema
 
 # CONAB
 
@@ -152,7 +151,7 @@ OpenMeteoSchema = DataFrameSchema(
 )
 
 
-# NDVI Satélite
+# Satellite NDVI
 
 NdviSchema = DataFrameSchema(
     {
@@ -167,7 +166,7 @@ NdviSchema = DataFrameSchema(
 )
 
 
-# Registry: mapeia nomes de schema para schemas (para lookup dinâmico)
+# Registry: map schema names to schemas for dynamic lookup
 
 SCHEMA_REGISTRY = {
     "conab_producao": ConabProducaoSchema,

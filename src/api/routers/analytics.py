@@ -28,7 +28,7 @@ router = APIRouter(prefix="/analytics", tags=["Analytics"])
     summary="Raio-X Agroclimático de um município/cultura/ano",
 )
 def raio_x_municipal(codigo_ibge: str, cultura: str, ano: int):
-    # Dimensões
+    # Dimensions
     mun_df = duck_db.execute_query(
         "SELECT id_municipio, nome, uf FROM dim_municipio WHERE codigo_ibge = ?", (codigo_ibge.strip(),)
     )
@@ -205,7 +205,7 @@ def viabilidade_economica(cultura: str, uf: str, ano: int):
     id_cult = int(cult_df.iloc[0].id_cultura)
     uf_upper = uf.upper().strip()
 
-    # PAM Produção
+    # PAM production
     pam_df = duck_db.execute_query(
         """
         SELECT sum(p.qtde_produzida_ton) as prod, sum(p.area_plantada_ha) as area
@@ -219,7 +219,7 @@ def viabilidade_economica(cultura: str, uf: str, ano: int):
     producao_ton = float(pam.prod) if pam is not None and not np.isnan(pam.prod) else None
     area_ha = float(pam.area) if pam is not None and not np.isnan(pam.area) else None
 
-    # Preço CONAB
+    # CONAB price
     preco_df = duck_db.execute_query(
         """
         SELECT avg(valor_kg) as preco
@@ -341,7 +341,7 @@ def auditoria_estimativas(cultura: str, uf: Optional[str] = None):
     sql_conab += " GROUP BY uf, ano_agricola LIMIT 50"
     conab_df = duck_db.execute_query(sql_conab, tuple(params_conab))
 
-    # PAM Realizado Consolidadas em uma única query bulk para evitar o N+1 queries!
+    # Actual PAM consolidated in a single bulk query to avoid N+1 queries
     pam_full_df = duck_db.execute_query(
         """
         SELECT m.uf, p.ano, sum(p.qtde_produzida_ton) as prod
@@ -370,7 +370,7 @@ def auditoria_estimativas(cultura: str, uf: Optional[str] = None):
         except (ValueError, TypeError, IndexError):
             continue
 
-        # PAM Realizado buscado em O(1) do dicionário em memória
+        # Actual PAM fetched in O(1) from the in-memory dictionary
         realizado_ton = pam_lookup.get((str(row.uf).upper().strip(), ano_pam), None)
         realizado_mil_t = (realizado_ton / 1000.0) if realizado_ton else None
         estimativa_mil_t = float(row["estimativa"]) if not np.isnan(row["estimativa"]) else None

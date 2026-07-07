@@ -1,4 +1,4 @@
-"""Pipeline SIDRA/PAM: Produção Agrícola Municipal (IBGE)."""
+"""SIDRA/PAM pipeline: Municipal Agricultural Production (IBGE)."""
 
 import logging
 import os
@@ -49,7 +49,7 @@ class SidraPipeline(BaseSource):
                 if cls["id"] == "782":
                     for cat in cls.get("categorias", []):
                         name_norm = normalize_string(pd.Series([cat["nome"]])).iloc[0]
-                        # Normalização: Remoção de sufixos (ex: "em grão")
+                        # Normalization: remove suffixes (for example, "em grão")
                         name_clean = name_norm.split("(")[0].strip()
                         metadata_map[name_clean] = cat["id"]
         except Exception as e:
@@ -78,7 +78,7 @@ class SidraPipeline(BaseSource):
 
         crops_ids = self._map_culture_ids()
 
-        # Variáveis Tabela 5457: 8331 (Área Plantada), 216 (Área Colhida), 214 (Produção), 215 (Valor da Produção)
+        # Table 5457 variables: 8331 (planted area), 216 (harvested area), 214 (production), 215 (production value)
         variables = "8331,216,214,215"
 
         def _fetch_crop(crop_name, crop_id):
@@ -98,7 +98,7 @@ class SidraPipeline(BaseSource):
                 self.log.error(f"Exceção ao buscar {crop_name}: {e}")
             return None
 
-        # Requests paralelos: 5 culturas simultâneas (vs. sequencial)
+        # Parallel requests: five simultaneous crops instead of sequential processing
         all_dfs = []
         with ThreadPoolExecutor(max_workers=len(crops_ids)) as pool:
             futures = {pool.submit(_fetch_crop, name, cid): name for name, cid in crops_ids.items()}
@@ -150,7 +150,7 @@ class SidraPipeline(BaseSource):
                 f"PAM/SIDRA: {nulos_depois - nulos_antes} valor(es) não numérico(s) do IBGE ('...', '-') convertido(s) para NaN."
             )
 
-        # Transformação: Pivoteamento de variáveis para colunas fato
+        # Transformation: pivot variables into fact columns
         df_pivot = df_clean.pivot_table(
             index=["cod_municipio_ibge", "municipio_nome", "ano", "cultura"], columns="variavel", values="valor"
         ).reset_index()
@@ -179,8 +179,8 @@ class SidraPipeline(BaseSource):
 
         df_pivot["cultura"] = normalize_string(df_pivot["cultura"])
 
-        # Extrair UF do código IBGE (2 primeiros dígitos) para uso no municipio
-        # Os dados do SIDRA não trazem coluna UF explícita
+        # Extract state from the IBGE code (first two digits) for municipality usage
+        # SIDRA data does not include an explicit state column
 
         return df_pivot
 

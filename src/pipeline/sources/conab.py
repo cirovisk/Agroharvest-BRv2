@@ -1,4 +1,4 @@
-"""Pipeline CONAB: Produção e Preços agrícolas (CONAB)."""
+"""CONAB pipeline: agricultural production and prices (CONAB)."""
 
 import logging
 import os
@@ -46,7 +46,7 @@ class ConabPipeline(BaseSource):
         for key, filename in self.FILES.items():
             local_path = os.path.join(self.data_dir, filename)
 
-            # Lógica de atualização:
+            # Update logic:
             is_stale = self.is_file_stale(local_path, threshold_days=(7 if "semanal" in key else 30))
 
             if self.force_refresh or not os.path.exists(local_path) or is_stale:
@@ -71,7 +71,7 @@ class ConabPipeline(BaseSource):
     def _download_file(self, filename, local_path):
         url = self.BASE_URL + filename
 
-        # Arquivamento (apenas para Mensais e Produção/Histórico)
+        # Archiving (only for monthly and production/history files)
         if "semanal" not in filename:
             self._archive_file(local_path, self.data_dir)
 

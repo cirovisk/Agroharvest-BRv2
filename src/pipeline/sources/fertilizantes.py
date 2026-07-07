@@ -61,7 +61,7 @@ class FertilizantesPipeline(BaseSource):
     def _download_file(self, local_path):
         self.log.info(f"Fazendo download de {self.DOWNLOAD_URL}...")
 
-        # Arquivamento (Idempotência/Histórico)
+        # Archiving (idempotency/history)
         self._archive_file(local_path, self.data_dir)
 
         headers = {

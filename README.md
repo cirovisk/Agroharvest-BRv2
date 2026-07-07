@@ -1,25 +1,25 @@
 # AgroHarvest BR - DuckDB Lakehouse
 
-Versão Lakehouse do projeto AgroHarvest BR, com foco em DuckDB, Apache Parquet e API de analytics.  
-Selecione o idioma:
+Lakehouse version of the AgroHarvest BR project, focused on DuckDB, Apache Parquet, and an analytics API.  
+Select a language:
 
 - [Português](./README.pt-BR.md)
 - [English](./README.en.md)
 
-## Destaques
+## Highlights
 
-- DuckDB como engine analítica in-process
-- Arquivos Parquet comprimidos para armazenamento colunar
-- API para consulta de dados agrícolas e climáticos
-- Dashboards no Metabase
+- DuckDB as an in-process analytical engine
+- Compressed Parquet files for columnar storage
+- API for agricultural and climate data queries
+- Metabase dashboards
 
 ## Stack
 
-Python, DuckDB, Apache Parquet, FastAPI, Uvicorn, SlowAPI, Pandas, NumPy, PyArrow, Docker e Docker Compose.
+Python, DuckDB, Apache Parquet, FastAPI, Uvicorn, SlowAPI, Pandas, NumPy, PyArrow, Docker, and Docker Compose.
 
-## Estrutura
+## Structure
 
-- `data/storage/`: lakehouse local em Parquet + DuckDB
-- `src/`: pipeline, API e lógica de dados
-- `tests/`: testes unitários
-- `docs/`: arquitetura e documentação técnica
+- `data/storage/`: local lakehouse in Parquet + DuckDB
+- `src/`: pipeline, API, and data logic
+- `tests/`: unit tests
+- `docs/`: architecture and technical documentation

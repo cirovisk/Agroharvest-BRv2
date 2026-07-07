@@ -3,7 +3,7 @@ import pandas as pd
 from src.pipeline.dimensions import preencher_dimensao_cultura, preencher_dimensao_mantenedor, preencher_dimensao_municipio
 
 def test_preencher_dimensao_cultura(duck_conn):
-    """Testa se a lista de culturas alvo é inserida corretamente na dimensão."""
+    """Test that the target crop list is inserted correctly into the dimension."""
     culturas = ["Soja", "Milho", "Trigo"]
     mapping = preencher_dimensao_cultura(duck_conn, culturas)
     
@@ -31,7 +31,7 @@ def test_preencher_dimensao_mantenedor(duck_conn):
     assert len(rows) == 2
 
 def test_preencher_dimensao_municipio(duck_conn):
-    """Testa o mapeamento de municípios a partir de PAM e ZARC."""
+    """Test municipality mapping from PAM and ZARC."""
     df_pam = pd.DataFrame({
         "cod_municipio_ibge": ["1200013", "1200054"],
         "municipio_nome": ["Mun A", "Mun B"],
@@ -45,7 +45,7 @@ def test_preencher_dimensao_municipio(duck_conn):
 
     mun_map_ibge, mun_map_name = preencher_dimensao_municipio(duck_conn, df_pam, df_zarc)
 
-    # Mun A (comum), Mun B (PAM), Mun C (ZARC) -> 3 municípios distintos
+    # Mun A (common), Mun B (PAM), Mun C (ZARC) -> three distinct municipalities
     assert len(mun_map_ibge) == 3
     assert "1200013" in mun_map_ibge
     assert "1300021" in mun_map_ibge
@@ -58,7 +58,7 @@ def test_preencher_dimensao_municipio(duck_conn):
     assert len(rows) == 3
 
 def test_get_cultura_id_logic():
-    """Testa a lógica de busca flexível de cultura por nome."""
+    """Test flexible crop lookup logic by name."""
     from src.pipeline.utils import get_cultura_id
     
     mapping = {
@@ -70,10 +70,10 @@ def test_get_cultura_id_logic():
     # Match exato
     assert get_cultura_id("soja", mapping) == 1
     
-    # Match com variação de case
+    # Match with case variation
     assert get_cultura_id("SOJA", mapping) == 1
     
-    # Match com acentuação/flexibilidade
+    # Match with accents/flexibility
     assert get_cultura_id("Cana de Acucar", mapping) == 3
     
     # Match parcial

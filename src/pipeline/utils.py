@@ -1,6 +1,6 @@
 """
-Utilitários compartilhados: normalização de strings,
-lookup de cultura, e mapeamento de município por nome.
+Shared utilities: string normalization, crop lookup,
+and municipality mapping by name.
 """
 
 import logging
@@ -11,11 +11,11 @@ import pandas as pd
 log = logging.getLogger(__name__)
 
 
-# Normalização de Strings
+# String Normalization
 
 
 def normalize_string(series: pd.Series) -> pd.Series:
-    """Normalização: Padronização de nomes (remuneração de acentos, lowercase)."""
+    """Normalize names by removing accents and lowercasing."""
 
     def remove_accents(input_str):
         if not isinstance(input_str, str):
@@ -26,7 +26,7 @@ def normalize_string(series: pd.Series) -> pd.Series:
     return series.apply(remove_accents).str.strip()
 
 
-# Lookup de Cultura (com Sinônimos)
+# Crop Lookup (with Synonyms)
 
 
 def get_cultura_id(nome_cultura, mapping):
@@ -38,7 +38,7 @@ def get_cultura_id(nome_cultura, mapping):
         s = "".join(c for c in unicodedata.normalize("NFKD", s) if unicodedata.category(c) != "Mn")
         return s.replace("-", " ").replace("_", " ")
 
-    # Dicionário de Sinônimos Científicos (SIGEF/MAPA -> Popular)
+    # Scientific synonym dictionary (SIGEF/MAPA -> common name)
     SYNONYMS = {
         "glycine max": "soja",
         "zea mays": "milho",
@@ -49,13 +49,13 @@ def get_cultura_id(nome_cultura, mapping):
         "saccharum": "cana-de-acucar",
     }
 
-    # Tenta match exato primeiro (antes de normalizar)
+    # Try an exact match first, before normalizing
     if nome_cultura in mapping:
         return mapping[nome_cultura]
 
     nombre_norm = norm(nome_cultura)
 
-    # Aplica Tradução de Sinônimos
+    # Apply synonym translation
     for syn, target in SYNONYMS.items():
         if syn in nombre_norm:
             nombre_norm = target
@@ -63,7 +63,7 @@ def get_cultura_id(nome_cultura, mapping):
 
     for alvo, cid in mapping.items():
         alvo_norm = norm(alvo)
-        # Match de palavra inteira ou exato para evitar erros como strigosa -> trigo
+        # Match exact terms or whole words to avoid errors such as strigosa -> trigo
         if f" {alvo_norm} " in f" {nombre_norm} " or f" {nombre_norm} " in f" {alvo_norm} ":
             return cid
         if alvo_norm == nombre_norm:
@@ -71,11 +71,11 @@ def get_cultura_id(nome_cultura, mapping):
     return None
 
 
-# Mapeamento de Município por Nome
+# Municipality Mapping by Name
 
 
 def map_municipio_by_name(df, map_mun_name):
-    """Lookup vectorizado de id_municipio via (nome, uf) — substitui apply(axis=1)."""
+    """Vectorized id_municipio lookup through (name, state), replacing apply(axis=1)."""
     has_mun = df["municipio"].notna() & df["uf"].notna()
     keys = df["municipio"].str.lower().str.strip() + "|" + df["uf"].str.upper()
     lookup = {f"{n}|{u}": mid for (n, u), mid in map_mun_name.items()}

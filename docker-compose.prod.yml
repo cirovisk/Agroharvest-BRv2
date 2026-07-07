@@ -1,5 +1,5 @@
 services:
-  # Serviço de Ingestão (Pode ser rodado via Cron na Oracle)
+  # Ingestion service (can be run through Cron on Oracle)
   app:
     build:
       context: .
@@ -7,10 +7,10 @@ services:
     container_name: cultivares_app_prod
     env_file: .env
     volumes:
-      - ./data:/app/data  # Persistência apenas dos dados
+      - ./data:/app/data  # Persist only data
     command: ["python", "src/main.py"]
 
-  # API de Analytics em Produção
+  # Analytics API in production
   api:
     build:
       context: .
@@ -19,15 +19,15 @@ services:
     restart: always
     env_file: .env
     volumes:
-      - ./data:/app/data  # Compartilha o storage com o serviço de ingestão
+      - ./data:/app/data  # Share storage with the ingestion service
     ports:
-      - "80:8000"         # Mapeia para a porta 80 padrão da web na Oracle
+      - "80:8000"         # Map to Oracle's standard web port 80
     deploy:
       resources:
         limits:
           memory: 2G
 
-  # Metabase para Dashboards (OCI Always Free ARM)
+  # Metabase for dashboards (OCI Always Free ARM)
   metabase:
     image: metabase/metabase:v0.50.21
     container_name: cultivares_metabase_prod
@@ -40,7 +40,7 @@ services:
       - MB_DB_FILE_PATH=/metabase-data/metabase.db
     volumes:
       - metabase_data:/metabase-data
-      - ./docker/metabase/plugins:/plugins                # Pasta com o driver .jar do DuckDB
+      - ./docker/metabase/plugins:/plugins                # Folder with the DuckDB .jar driver
       - ./data:/app/data                  # Acesso ao banco DuckDB e Parquets
     deploy:
       resources:

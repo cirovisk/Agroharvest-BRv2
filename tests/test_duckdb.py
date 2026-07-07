@@ -27,7 +27,7 @@ def test_dimensao_cultura_duckdb(duck_conn):
     assert "milho" in mapping
     assert isinstance(mapping["soja"], int)
     
-    # Teste de idempotência
+    # Idempotency test
     mapping2 = preencher_dimensao_cultura(duck_conn, ["SOJA", "Arroz"])
     assert mapping["soja"] == mapping2["soja"]
     assert "arroz" in mapping2

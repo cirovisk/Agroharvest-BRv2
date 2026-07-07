@@ -1,5 +1,5 @@
 services:
-  # O serviço de ingestão (Pipeline)
+  # Ingestion service (pipeline)
   app:
     build:
       context: .
@@ -13,7 +13,7 @@ services:
         limits:
           memory: 4G
 
-  # Rodar testes
+  # Run tests
   test:
     build:
       context: .
@@ -43,7 +43,7 @@ services:
         limits:
           memory: 1G
 
-  # Metabase para Dashboards
+  # Metabase for dashboards
   metabase:
     image: metabase/metabase:v0.50.21
     container_name: cultivares_metabase
