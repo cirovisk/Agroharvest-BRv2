@@ -4,7 +4,7 @@ services:
     build:
       context: .
       dockerfile: docker/app.Dockerfile
-    container_name: cultivares_app
+    container_name: cultivares_duckdb_app
     env_file: .env
     volumes:
       - .:/app
@@ -18,7 +18,7 @@ services:
     build:
       context: .
       dockerfile: docker/app.Dockerfile
-    container_name: cultivares_test
+    container_name: cultivares_duckdb_test
     env_file: .env
     volumes:
       - .:/app
@@ -30,7 +30,7 @@ services:
     build:
       context: .
       dockerfile: docker/app.Dockerfile
-    container_name: cultivares_api
+    container_name: cultivares_duckdb_api
     env_file: .env
     volumes:
       - .:/app
@@ -46,7 +46,7 @@ services:
   # Metabase for dashboards
   metabase:
     image: metabase/metabase:v0.50.21
-    container_name: cultivares_metabase
+    container_name: cultivares_duckdb_metabase
     profiles: ["dashboard"]
     ports:
       - "3000:3000"

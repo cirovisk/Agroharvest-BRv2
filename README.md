@@ -17,6 +17,17 @@ Select a language:
 
 Python, DuckDB, Apache Parquet, FastAPI, Uvicorn, SlowAPI, Pandas, NumPy, PyArrow, Docker, and Docker Compose.
 
+## Operational Quickstart
+
+```bash
+make setup
+make ingest
+make validate-lakehouse
+make api
+```
+
+`make validate-lakehouse` checks DuckDB dimensions, required Parquet fact folders, and writes `data/storage/lakehouse_manifest.json`.
+
 ## Structure
 
 - `data/storage/`: local lakehouse in Parquet + DuckDB

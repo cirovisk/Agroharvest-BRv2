@@ -43,6 +43,17 @@ docker-compose up api
 docker-compose run --rm test
 ```
 
+Fluxo recomendado:
+
+```bash
+make setup
+make ingest
+make validate-lakehouse
+make api
+```
+
+`make validate-lakehouse` verifica dimensoes DuckDB, arquivos Parquet obrigatorios e gera um manifesto em `data/storage/lakehouse_manifest.json`.
+
 ## Produção
 
 O projeto possui configuração de produção para OCI com:
