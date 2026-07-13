@@ -28,6 +28,18 @@ make api
 
 `make validate-lakehouse` checks DuckDB dimensions, required Parquet fact folders, and writes `data/storage/lakehouse_manifest.json`.
 
+## Logs and Audit
+
+Logs are centralized in `data/logs/app.log` with automatic rotation. Each pipeline execution receives a `run_id` that is included in logs and final reports.
+
+Generated files:
+
+- `data/logs/app.log`: API and pipeline log.
+- `data/logs/pipeline_status_*.json`: execution summary.
+- `data/logs/pipeline_metrics_*.csv`: source-level metrics.
+
+Use `LOG_FORMAT=json` for structured JSON logs.
+
 ## Structure
 
 - `data/storage/`: local lakehouse in Parquet + DuckDB

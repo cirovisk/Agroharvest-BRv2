@@ -19,6 +19,22 @@ from pipeline.http_client import ResilientHTTPClient
 from pipeline.parquet_utils import save_as_parquet
 
 
+def _row_count(data) -> int | None:
+    if data is None:
+        return None
+    if isinstance(data, dict):
+        total = 0
+        found = False
+        for value in data.values():
+            if hasattr(value, "__len__"):
+                total += len(value)
+                found = True
+        return total if found else None
+    if hasattr(data, "__len__") and not isinstance(data, (str, bytes)):
+        return len(data)
+    return None
+
+
 class BaseSource(ABC):
     """Interface every data source must follow."""
 
@@ -97,11 +113,39 @@ class BaseSource(ABC):
 
     def run(self, lookups: dict, **kwargs) -> str:
         """Executa o pipeline completo: extract → clean → validate → load."""
-        self.log.info("Iniciando pipeline...")
+        source = self.__class__.__name__
+        self.log.info("Iniciando pipeline...", extra={"event": "pipeline_source_start", "source": source})
+
+        started = time.monotonic()
         raw = self.extract(**kwargs)
+        self.log.info(
+            "Extract completed",
+            extra={
+                "event": "pipeline_stage",
+                "source": source,
+                "stage": "extract",
+                "status": "success",
+                "rows": _row_count(raw),
+                "duration_seconds": round(time.monotonic() - started, 2),
+            },
+        )
+
+        started = time.monotonic()
         clean = self.clean(raw)
+        self.log.info(
+            "Clean completed",
+            extra={
+                "event": "pipeline_stage",
+                "source": source,
+                "stage": "clean",
+                "status": "success",
+                "rows": _row_count(clean),
+                "duration_seconds": round(time.monotonic() - started, 2),
+            },
+        )
 
         # Schema validation (if defined)
+        started = time.monotonic()
         if isinstance(clean, dict):
             # Sources with multiple DataFrames (CONAB, SIGEF)
             for key, df in clean.items():
@@ -111,9 +155,30 @@ class BaseSource(ABC):
                         clean[key] = self.validate(df, schema=sub_schema)
         else:
             clean = self.validate(clean)
+        self.log.info(
+            "Validation completed",
+            extra={
+                "event": "pipeline_stage",
+                "source": source,
+                "stage": "validate",
+                "status": "success",
+                "rows": _row_count(clean),
+                "duration_seconds": round(time.monotonic() - started, 2),
+            },
+        )
 
+        started = time.monotonic()
         result = self.load(clean, lookups)
-        self.log.info(f"Pipeline concluído: {result}")
+        self.log.info(
+            f"Pipeline concluído: {result}",
+            extra={
+                "event": "pipeline_stage",
+                "source": source,
+                "stage": "load",
+                "status": "success",
+                "duration_seconds": round(time.monotonic() - started, 2),
+            },
+        )
         return result
 
     def is_file_stale(self, path: str, threshold_days: int = 30) -> bool:
